@@ -1,0 +1,22 @@
+{
+  "name": "mutate-cow",
+  "version": "1.0.0",
+  "description": "Update immutable objects as if they were mutable with copy-on-write",
+  "keywords": [
+    "immutable",
+    "updates",
+    "copy on write",
+    "state management"
+  ],
+  "main": "index.mjs",
+  "license": "MIT",
+  "author": "Michael Wiencek <mwtuea@gmail.com>",
+  "repository": "github:mwiencek/mutate-cow",
+  "devDependencies": {
+    "flow-bin": "0.94.0"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "test": "node --experimental-modules test.mjs"
+  }
+}
