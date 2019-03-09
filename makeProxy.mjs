@@ -34,13 +34,9 @@ export default function makeProxy(source, getCopy, callbacks) {
     // when `defineProperty` is called directly?
     defineProperty: function (obj, prop, desc) {
       copyForWrite();
-      if (desc.hasOwnProperty('configurable') ||
-          desc.hasOwnProperty('enumerable') ||
-          desc.hasOwnProperty('writable')) {
-        if (desc.configurable === false &&
-            !fakeTarget.hasOwnProperty(prop)) {
-          Reflect.defineProperty(fakeTarget, prop, desc);
-        }
+      // Non-configurable properties must exist on the proxy target.
+      if (desc.configurable === false && !fakeTarget.hasOwnProperty(prop)) {
+        Reflect.defineProperty(fakeTarget, prop, desc);
       }
       return Reflect.defineProperty(copy, prop, desc);
     },
