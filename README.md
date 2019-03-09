@@ -6,8 +6,8 @@ It's implemented using [Proxy](https://developer.mozilla.org/en-US/docs/Web/Java
 
 While this doesn't appear to have been an original idea, I believe `mutate-cow` provides useful features that other packages don't:
 
- * All property descriptors from the immutable object are preserved.
- * The extensibility of the immutable object is preserved. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen.
+ * All property descriptors from the immutable object are preserved in the copy.
+ * All extensibility information from the immutable object is preserved in the copy. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen. (Inside the callback, of course, the working copy in unsealed and all properties are writable.)
  * Getters and setters from the immutable object can be used inside the callback, and are preserved in the copy; they aren't converted from accessors to writables.
  * Arrays, objects, and class instances are supported for mutation. Inside the callback, these have the correct identities when passed to `Array.isArray` or `instanceof`.
  * Usable Flow types are provided that don't freak out when you pass in a read-only object or array. (Property accesses and assignments are still type-checked in the callback.)
