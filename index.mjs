@@ -26,7 +26,7 @@ declare type MakeWritable =
 declare type Writable<T> = $Call<MakeWritable, T>;
 */
 
-export default function doMutate/*:: <T: {...} | $ReadOnlyArray<mixed>> */(
+export default function mutate/*:: <T: {...} | $ReadOnlyArray<mixed>> */(
   source/*: T */,
   updater/*: (Writable<T>) => void */,
 )/*: T */ {

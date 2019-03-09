@@ -8,7 +8,7 @@
 
 'use strict';
 
-import doMutate from './index.mjs';
+import mutate from './index.mjs';
 import {PROXY_TARGETS} from './constants.mjs';
 
 function assert(truth, message) {
@@ -48,7 +48,7 @@ const frozenBob /*: Person */ = Object.freeze({
 
 { // object not copied if no writes are made
 
-  const copy = doMutate(alice, (copy) => {
+  const copy = mutate(alice, (copy) => {
     assert('name' in copy);
     assert('birth_date' in copy);
     assert('death_date' in copy);
@@ -70,7 +70,7 @@ const frozenBob /*: Person */ = Object.freeze({
 }
 
 {
-  const copy = doMutate(alice, (copy) => {
+  const copy = mutate(alice, (copy) => {
     assert(copy.birth_date.year === 2100);
     copy.birth_date.year = 1988;
     assert(copy.birth_date.year === 1988);
@@ -89,7 +89,7 @@ const frozenBob /*: Person */ = Object.freeze({
 }
 
 {
-  let copy = doMutate(frozenBob, (copy) => {
+  let copy = mutate(frozenBob, (copy) => {
     copy.name;
     copy.birth_date.year;
     copy.death_date.year;
@@ -97,7 +97,7 @@ const frozenBob /*: Person */ = Object.freeze({
 
   assert(copy === frozenBob);
 
-  copy = doMutate(frozenBob, (copy) => {
+  copy = mutate(frozenBob, (copy) => {
     assert(copy.birth_date.year === 2450);
     copy.birth_date.year = 1988;
     assert(copy.birth_date.year === 1988);
@@ -116,7 +116,7 @@ const people/*: People */ = [alice, frozenBob];
 
 { // object not copied if no writes are made
 
-  const copy = doMutate(people, (copy) => {
+  const copy = mutate(people, (copy) => {
     copy[0].death_date.year;
     copy[1].death_date.year;
   });
@@ -132,7 +132,7 @@ const people/*: People */ = [alice, frozenBob];
 
   const orig = {foo: 1};
 
-  const copy = doMutate(orig, (copy) => {
+  const copy = mutate(orig, (copy) => {
     delete copy.foo;
   });
 
@@ -144,7 +144,7 @@ const people/*: People */ = [alice, frozenBob];
 
   const orig/*: {+foo?: number} */ = {};
 
-  const copy = doMutate(orig, (copy) => {
+  const copy = mutate(orig, (copy) => {
     Object.defineProperty(copy, 'foo', {
       configurable: false,
       enumerable: true,
@@ -159,7 +159,7 @@ const people/*: People */ = [alice, frozenBob];
 
 { // array push
 
-  const copy = doMutate(people, (copy) => {
+  const copy = mutate(people, (copy) => {
     assert(Array.isArray(copy));
     copy.push((alice/*: any */));
   });
@@ -172,7 +172,7 @@ const people/*: People */ = [alice, frozenBob];
 
 { // array delete
 
-  const copy = doMutate(people, (copy) => {
+  const copy = mutate(people, (copy) => {
     delete copy[1];
   });
 
@@ -183,7 +183,7 @@ const people/*: People */ = [alice, frozenBob];
 }
 
 { // splice
-  let copy = doMutate(people, (copy) => {
+  let copy = mutate(people, (copy) => {
     assert(Array.isArray(copy));
     copy.splice(0, 1);
   });
@@ -196,7 +196,7 @@ const people/*: People */ = [alice, frozenBob];
 
 { // objects are copied only once
 
-  const copy = doMutate(people, (copy) => {
+  const copy = mutate(people, (copy) => {
     const proxy1 = copy[0].death_date;
     proxy1.year = 5000;
     assert(proxy1 === copy[0].death_date); // proxy is unchanged
@@ -231,7 +231,7 @@ type WeirdArray = {weird: boolean} & Array<number>;
     writable: false,
   })/*: any */);
 
-  const weirdCopy = doMutate(weird, (copy) => {
+  const weirdCopy = mutate(weird, (copy) => {
     copy.push(666);
     assert(copy.weird === true, 'weird');
     copy.weird = false;
@@ -256,7 +256,7 @@ type WeirdArray = {weird: boolean} & Array<number>;
     writable: false,
   });
 
-  const descArrayCopy = doMutate(descArray, (copy) => {
+  const descArrayCopy = mutate(descArray, (copy) => {
     copy.value[1] = 0;
   });
 
@@ -278,7 +278,7 @@ type WeirdArray = {weird: boolean} & Array<number>;
     prop2: shared,
   };
 
-  const copy = doMutate(object, (copy) => {
+  const copy = mutate(object, (copy) => {
     copy.prop1.foo = 'abc';
     assert(copy.prop1.foo === 'abc');
     assert(copy.prop2.foo === '');
@@ -302,8 +302,8 @@ type WeirdArray = {weird: boolean} & Array<number>;
   const objectA = {foo: shared};
   const objectB = {foo: shared};
 
-  const objectACopy = doMutate(objectA, (copyA) => {
-    const objectBCopy = doMutate(objectB, (copyB) => {
+  const objectACopy = mutate(objectA, (copyA) => {
+    const objectBCopy = mutate(objectB, (copyB) => {
       copyA.foo.foo[0] = 2;
       copyB.foo.foo[0] = 3;
       assert(copyA.foo.foo[0] === 2);
@@ -330,7 +330,7 @@ type WeirdArray = {weird: boolean} & Array<number>;
 
   const instance = new NiceClass();
 
-  const copy = doMutate(instance, (copy) => {
+  const copy = mutate(instance, (copy) => {
     assert(copy instanceof NiceClass);
     copy.value = 'naughty';
   });
@@ -353,13 +353,13 @@ type WeirdArray = {weird: boolean} & Array<number>;
     },
   };
 
-  const copy1 = doMutate(orig, (copy) => {
+  const copy1 = mutate(orig, (copy) => {
     copy.value.foo = 1;
   });
 
   const newObject = {foo: 0};
 
-  const copy2 = doMutate(orig, (copy) => {
+  const copy2 = mutate(orig, (copy) => {
     copy.value = newObject;
     assert(copy.value.foo === 0);
     // This should copy newObject; otherwise we'd be able to have
