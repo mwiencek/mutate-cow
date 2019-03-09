@@ -398,3 +398,23 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     copy.func = () => undefined;
   });
 }
+
+{ // null prorotypes
+
+  const orig/*: {__proto__: null, +value: number} */ = Object.create(null, {
+    value: {
+      configurable: true,
+      enumerable: true,
+      value: 1,
+      writable: false,
+    },
+  });
+
+  const copy = mutate(orig, (copy) => {
+    copy.value = 2;
+  });
+
+  assert(orig.value === 1);
+  assert(copy.value === 2);
+  assert(Object.getPrototypeOf(copy) === null);
+}

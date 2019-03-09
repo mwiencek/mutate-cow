@@ -12,15 +12,17 @@ import clone from './clone.mjs';
 import makeProxy from './makeProxy.mjs';
 
 /*::
+type AnyObject = {__proto__: null, ...} | {...};
+
 declare type MakeWritable =
-  & (<V, X: {...}, T: $ReadOnlyArray<V> & X>(T) => Array<Writable<V>> & Writable<X>)
+  & (<V, X: AnyObject, T: $ReadOnlyArray<V> & X>(T) => Array<Writable<V>> & Writable<X>)
 
   & (<V>($ReadOnlyArray<V>) => Array<Writable<V>>)
 
   // {...$Exact<T>} removes the property variance.
   // {...T} doesn't work because it makes all the properties optional.
 
-  & (<T: {...}>(T) => $ObjMap<{...$Exact<T>}, MakeWritable>)
+  & (<T: AnyObject>(T) => $ObjMap<{...$Exact<T>}, MakeWritable>)
 
   & (<T>(T) => T)
   ;
@@ -28,7 +30,7 @@ declare type MakeWritable =
 declare type Writable<T> = $Call<MakeWritable, T>;
 */
 
-export default function mutate/*:: <T: {...} | $ReadOnlyArray<mixed>> */(
+export default function mutate/*:: <T: AnyObject | $ReadOnlyArray<mixed>> */(
   source/*: T */,
   updater/*: (Writable<T>) => void */,
 )/*: T */ {
