@@ -17,26 +17,26 @@ export default function clone(source, callbacks) {
       // No one should ever be doing this
       throw new Error('Cloning functions is unsupported');
     }
-    copy = Object.create(Object.getPrototypeOf(source));
+    copy = Object.create(Reflect.getPrototypeOf(source));
   }
   for (let name of Object.getOwnPropertyNames(source)) {
-    const desc = Object.getOwnPropertyDescriptor(source, name);
+    const desc = Reflect.getOwnPropertyDescriptor(source, name);
     if (desc.writable === false) {
       desc.writable = true;
       nonWritableProperties.push(name);
     }
-    Object.defineProperty(copy, name, desc);
+    Reflect.defineProperty(copy, name, desc);
   }
-  const isExtensible = Object.isExtensible(source);
+  const isExtensible = Reflect.isExtensible(source);
   if (!isExtensible || nonWritableProperties.length) {
     callbacks.push(() => {
       for (let name of nonWritableProperties) {
-        const desc = Object.getOwnPropertyDescriptor(copy, name);
+        const desc = Reflect.getOwnPropertyDescriptor(copy, name);
         desc.writable = false;
-        Object.defineProperty(copy, name, desc);
+        Reflect.defineProperty(copy, name, desc);
       }
       if (!isExtensible) {
-        Object.preventExtensions(copy);
+        Reflect.preventExtensions(copy);
       }
     });
   }

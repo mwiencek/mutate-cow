@@ -19,7 +19,7 @@ export default function makeProxy(source, getCopy, callbacks) {
   const isArray = Array.isArray(source);
   const fakeTarget = isArray
     ? EMPTY_ARRAY
-    : Object.create(Object.getPrototypeOf(source));
+    : Object.create(Reflect.getPrototypeOf(source));
 
   let copy;
   function copyForWrite() {
@@ -47,7 +47,7 @@ export default function makeProxy(source, getCopy, callbacks) {
     },
 
     get: function (obj, prop) {
-      const desc = Object.getOwnPropertyDescriptor(copy || source, prop);
+      const desc = Reflect.getOwnPropertyDescriptor(copy || source, prop);
       let value;
 
       if (desc) {
@@ -77,7 +77,7 @@ export default function makeProxy(source, getCopy, callbacks) {
     },
 
     getOwnPropertyDescriptor: function (obj, prop) {
-      const desc = Object.getOwnPropertyDescriptor(copy || source, prop);
+      const desc = Reflect.getOwnPropertyDescriptor(copy || source, prop);
       if (desc && (!isArray || prop !== 'length')) {
         desc.configurable = true;
         if (!desc.get && !desc.set) {
