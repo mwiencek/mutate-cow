@@ -14,7 +14,7 @@ import makeProxy from './makeProxy.mjs';
 /*::
 type AnyObject = {__proto__: null, ...} | {...};
 
-declare type MakeWritable =
+type MakeWritable =
   & (<V, X: AnyObject, T: $ReadOnlyArray<V> & X>(T) => Array<Writable<V>> & Writable<X>)
 
   & (<V>($ReadOnlyArray<V>) => Array<Writable<V>>)
@@ -27,13 +27,13 @@ declare type MakeWritable =
   & (<T>(T) => T)
   ;
 
-declare type Writable<T> = $Call<MakeWritable, T>;
+type Writable<T> = $Call<MakeWritable, T>;
 */
 
 export default function mutate/*:: <T: AnyObject | $ReadOnlyArray<mixed>> */(
   source/*: T */,
   updater/*: (Writable<T>) => void */,
-)/*: T */ {
+)/*: T */{
   let copy;
 
   const callbacks = [];
