@@ -13,7 +13,9 @@ import makeProxy from './makeProxy.mjs';
 
 /*::
 declare type MakeWritable =
-  & (<V, X, T: $ReadOnlyArray<V> & X>(T) => Array<Writable<V>> & X)
+  & (<V, X: {...}, T: $ReadOnlyArray<V> & X>(T) => Array<Writable<V>> & Writable<X>)
+
+  & (<V>($ReadOnlyArray<V>) => Array<Writable<V>>)
 
   // {...$Exact<T>} removes the property variance.
   // {...T} doesn't work because it makes all the properties optional.

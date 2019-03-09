@@ -219,7 +219,7 @@ const people/*: People */ = [alice, frozenBob];
 }
 
 /*::
-type WeirdArray = {weird: boolean} & Array<number>;
+type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
 */
 
 { // non-index array properties
