@@ -375,3 +375,26 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
   assert(copy2.value.foo === 2);
   assert(copy2.value === copy2.object);
 }
+
+{ // functions
+
+  const origFunc = () => undefined;
+
+  const orig/*: {|+func: () => void|} */ = {
+    func: origFunc,
+  };
+
+  const copy = mutate(orig, (copy) => {
+    let error;
+    try {
+      copy.func.prop = true;
+    } catch (e) {
+      error = e;
+    }
+
+    // Can't clone functions, so the above should error.
+    assert(error);
+
+    copy.func = () => undefined;
+  });
+}
