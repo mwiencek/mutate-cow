@@ -1,6 +1,6 @@
 {
   "name": "mutate-cow",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Update immutable objects as if they were mutable with copy-on-write",
   "keywords": [
     "immutable",
