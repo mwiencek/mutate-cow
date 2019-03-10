@@ -18,29 +18,40 @@ function assert(truth, message) {
 }
 
 /*::
-type Person = {
-  +name: string,
-  +birth_date: {
-    +year: number,
-  },
-  +death_date: {
-    +year: number,
-  },
+type DatePeriod = {
+  year: number,
 };
 
-type People = $ReadOnlyArray<Person>;
+type ReadOnlyDatePeriod = {
+  +year: number,
+};
+
+type Person = {
+  name: string,
+  birth_date: DatePeriod,
+  death_date: DatePeriod,
+};
+
+type ReadOnlyPerson = {
+  +name: string,
+  +birth_date: ReadOnlyDatePeriod,
+  +death_date: ReadOnlyDatePeriod,
+};
+
+type People = Array<Person>;
+type ReadOnlyPeople = $ReadOnlyArray<ReadOnlyPerson>;
 */
 
 const aliceBirthDate = {year: 2100};
 const aliceDeathDate = {year: 2330};
 
-const alice /*: Person */ = {
+const alice /*: ReadOnlyPerson */ = {
   name: 'Alice',
   birth_date: aliceBirthDate,
   death_date: aliceDeathDate,
 };
 
-const frozenBob /*: Person */ = Object.freeze({
+const frozenBob /*: ReadOnlyPerson */ = Object.freeze({
   name: 'Bob',
   birth_date: Object.freeze({year: 2450}),
   death_date: Object.freeze({year: 2988}),
@@ -48,7 +59,7 @@ const frozenBob /*: Person */ = Object.freeze({
 
 { // object not copied if no writes are made
 
-  const copy = mutate(alice, (copy) => {
+  const copy = mutate/*:: <Person, _>*/(alice, (copy) => {
     assert('name' in copy);
     assert('birth_date' in copy);
     assert('death_date' in copy);
@@ -70,7 +81,7 @@ const frozenBob /*: Person */ = Object.freeze({
 }
 
 {
-  const copy = mutate(alice, (copy) => {
+  const copy = mutate/*:: <Person, _>*/(alice, (copy) => {
     assert(copy.birth_date.year === 2100);
     copy.birth_date.year = 1988;
     assert(copy.birth_date.year === 1988);
@@ -89,7 +100,7 @@ const frozenBob /*: Person */ = Object.freeze({
 }
 
 {
-  let copy = mutate(frozenBob, (copy) => {
+  let copy = mutate/*:: <Person, _>*/(frozenBob, (copy) => {
     copy.name;
     copy.birth_date.year;
     copy.death_date.year;
@@ -97,7 +108,7 @@ const frozenBob /*: Person */ = Object.freeze({
 
   assert(copy === frozenBob);
 
-  copy = mutate(frozenBob, (copy) => {
+  copy = mutate/*:: <Person, _>*/(frozenBob, (copy) => {
     assert(copy.birth_date.year === 2450);
     copy.birth_date.year = 1988;
     assert(copy.birth_date.year === 1988);
@@ -112,11 +123,11 @@ const frozenBob /*: Person */ = Object.freeze({
   assert(copy.death_date === frozenBob.death_date);
 }
 
-const people/*: People */ = [alice, frozenBob];
+const people/*: ReadOnlyPeople */ = [alice, frozenBob];
 
 { // object not copied if no writes are made
 
-  const copy = mutate(people, (copy) => {
+  const copy = mutate/*:: <People, _>*/(people, (copy) => {
     copy[0].death_date.year;
     copy[1].death_date.year;
   });
@@ -132,7 +143,7 @@ const people/*: People */ = [alice, frozenBob];
 
   const orig = {foo: 1};
 
-  const copy = mutate(orig, (copy) => {
+  const copy = mutate/*:: <{foo: number}, _>*/(orig, (copy) => {
     delete copy.foo;
   });
 
@@ -144,7 +155,7 @@ const people/*: People */ = [alice, frozenBob];
 
   const orig/*: {+foo?: number} */ = {};
 
-  const copy = mutate(orig, (copy) => {
+  const copy = mutate/*:: <{foo:? number}, _>*/(orig, (copy) => {
     Object.defineProperty(copy, 'foo', {
       configurable: false,
       enumerable: true,
@@ -159,7 +170,7 @@ const people/*: People */ = [alice, frozenBob];
 
 { // array push
 
-  const copy = mutate(people, (copy) => {
+  const copy = mutate/*:: <People, _>*/(people, (copy) => {
     assert(Array.isArray(copy));
     copy.push((alice/*: any */));
   });
@@ -172,7 +183,7 @@ const people/*: People */ = [alice, frozenBob];
 
 { // array delete
 
-  const copy = mutate(people, (copy) => {
+  const copy = mutate/*:: <People, _>*/(people, (copy) => {
     delete copy[1];
   });
 
@@ -183,7 +194,7 @@ const people/*: People */ = [alice, frozenBob];
 }
 
 { // splice
-  let copy = mutate(people, (copy) => {
+  let copy = mutate/*:: <People, _>*/(people, (copy) => {
     assert(Array.isArray(copy));
     copy.splice(0, 1);
   });
@@ -196,7 +207,7 @@ const people/*: People */ = [alice, frozenBob];
 
 { // objects are copied only once
 
-  const copy = mutate(people, (copy) => {
+  const copy = mutate/*:: <People, _>*/(people, (copy) => {
     const proxy1 = copy[0].death_date;
     proxy1.year = 5000;
     assert(proxy1 === copy[0].death_date); // proxy is unchanged
@@ -231,7 +242,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     writable: false,
   })/*: any */);
 
-  const weirdCopy = mutate(weird, (copy) => {
+  const weirdCopy = mutate/*:: <{|weird: boolean|} & Array<number>, _>*/(weird, (copy) => {
     copy.push(666);
     assert(copy.weird === true, 'weird');
     copy.weird = false;
@@ -256,7 +267,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     writable: false,
   });
 
-  const descArrayCopy = mutate(descArray, (copy) => {
+  const descArrayCopy = mutate/*:: <{value: Array<number>}, _>*/(descArray, (copy) => {
     copy.value[1] = 0;
   });
 
@@ -269,16 +280,20 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
   assert(!(newDesc1/*: any */).writable);
 }
 
+/*::
+type SharedFoo = {foo: string};
+*/
+
 { // shared reference within one object
 
-  const shared/*: {+foo: string} */ = {foo: ''};
+  const shared/*: $ReadOnly<SharedFoo> */ = {foo: ''};
 
   const object = {
     prop1: shared,
     prop2: shared,
   };
 
-  const copy = mutate(object, (copy) => {
+  const copy = mutate/*:: <{prop1: SharedFoo, prop2: SharedFoo}, _>*/(object, (copy) => {
     copy.prop1.foo = 'abc';
     assert(copy.prop1.foo === 'abc');
     assert(copy.prop2.foo === '');
@@ -296,14 +311,19 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
   assert(shared.foo === '');
 }
 
+/*::
+type NestedShared = {foo: {foo: Array<number>}};
+type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
+*/
+
 { // nested calls + shared reference across two objects
 
   const shared/*: {+foo: $ReadOnlyArray<number>} */ = {foo: [1]};
-  const objectA = {foo: shared};
-  const objectB = {foo: shared};
+  const objectA/*: ReadOnlyNestedShared */ = {foo: shared};
+  const objectB/*: ReadOnlyNestedShared */ = {foo: shared};
 
-  const objectACopy = mutate(objectA, (copyA) => {
-    const objectBCopy = mutate(objectB, (copyB) => {
+  const objectACopy = mutate/*:: <NestedShared, _>*/(objectA, (copyA) => {
+    const objectBCopy = mutate/*:: <NestedShared, _>*/(objectB, (copyB) => {
       copyA.foo.foo[0] = 2;
       copyB.foo.foo[0] = 3;
       assert(copyA.foo.foo[0] === 2);
@@ -330,7 +350,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
 
   const instance = new NiceClass();
 
-  const copy = mutate(instance, (copy) => {
+  const copy = mutate/*:: <NiceClass, _>*/(instance, (copy) => {
     assert(copy instanceof NiceClass);
     copy.value = 'naughty';
   });
@@ -345,21 +365,21 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
 
   const orig = {
     object: null,
-    get value()/*: {+foo?: number} */{
+    get value()/*: {foo?: number} */{
       return (this.object = this.object || {});
     },
-    set value(x/*: {+foo?: number} */)/*: void */{
+    set value(x/*: {foo?: number} */)/*: void */{
       this.object = x;
     },
   };
 
-  const copy1 = mutate(orig, (copy) => {
+  const copy1 = mutate/*:: <typeof orig, _>*/(orig, (copy) => {
     copy.value.foo = 1;
   });
 
   const newObject = {foo: 0};
 
-  const copy2 = mutate(orig, (copy) => {
+  const copy2 = mutate/*:: <typeof orig, _>*/(orig, (copy) => {
     copy.value = newObject;
     assert(copy.value.foo === 0);
     // This should copy newObject; otherwise we'd be able to have
@@ -384,7 +404,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     func: origFunc,
   };
 
-  const copy = mutate(orig, (copy) => {
+  const copy = mutate/*:: <{func: () => void}, _>*/(orig, (copy) => {
     let error;
     try {
       copy.func.prop = true;
@@ -410,7 +430,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     },
   });
 
-  const copy = mutate(orig, (copy) => {
+  const copy = mutate/*:: <{__proto__: null, value: number}, _>*/(orig, (copy) => {
     copy.value = 2;
   });
 
@@ -426,7 +446,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     str: new String('hello'),
   };
 
-  const copy = mutate(orig, (copy) => {
+  const copy = mutate/*:: <{num: Number, str: String}, _>*/(orig, (copy) => {
     let error;
 
     error = null;
