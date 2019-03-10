@@ -7,17 +7,19 @@
 
 'use strict';
 
+import canClone from './canClone.mjs';
+
 export default function clone(source, callbacks) {
   const nonWritableProperties = [];
   let copy;
   if (Array.isArray(source)) {
     copy = new Array(source.length);
   } else {
-    if (typeof source === 'function') {
-      // No one should ever be doing this
-      throw new Error('Cloning functions is unsupported');
+    if (canClone(source)) {
+      copy = Object.create(Reflect.getPrototypeOf(source));
+    } else {
+      throw new Error('Cloning built-in non-Array or non-Object objects is unsupported.');
     }
-    copy = Object.create(Reflect.getPrototypeOf(source));
   }
   for (let name of Object.getOwnPropertyNames(source)) {
     const desc = Reflect.getOwnPropertyDescriptor(source, name);

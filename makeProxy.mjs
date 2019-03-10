@@ -7,6 +7,7 @@
 
 'use strict';
 
+import canClone from './canClone.mjs';
 import clone from './clone.mjs';
 import {EMPTY_ARRAY, PROXY_TARGETS} from './constants.mjs';
 
@@ -56,6 +57,14 @@ export default function makeProxy(source, getCopy, callbacks) {
         }
         value = desc.value;
       } else {
+        if (!canClone(source)) {
+          throw new Error(
+            'Accessing properties and methods through built-in ' +
+            'non-Array or non-Object objects is unsupported. ' +
+            'If you know what you\'re doing, access them through ' +
+            'the original object instead.',
+          );
+        }
         return Reflect.get(copy || source, prop);
       }
 

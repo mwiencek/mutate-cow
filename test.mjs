@@ -393,7 +393,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     }
 
     // Can't clone functions, so the above should error.
-    assert(error);
+    assert(error && error.message.includes('unsupported'));
 
     copy.func = () => undefined;
   });
@@ -417,4 +417,39 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
   assert(orig.value === 1);
   assert(copy.value === 2);
   assert(Object.getPrototypeOf(copy) === null);
+}
+
+{ // Number / String objects
+
+  const orig/*: {+num: Number, +str: String} */ = {
+    num: new Number(1),
+    str: new String('hello'),
+  };
+
+  const copy = mutate(orig, (copy) => {
+    let error;
+
+    error = null;
+    try {
+      copy.num.valueOf();
+    } catch (e) {
+      error = e;
+    }
+    assert(error && error.message.includes('unsupported'));
+
+    copy.num = new Number(orig.num.valueOf() + 2);
+
+    error = null;
+    try {
+      copy.str[4] = 'p';
+    } catch (e) {
+      error = e;
+    }
+    assert(error && error.message.includes('unsupported'));
+  });
+
+  assert(orig.num.valueOf() === 1);
+  assert(orig.str.valueOf() === 'hello');
+  assert(copy.num.valueOf() === 3);
+  assert(copy.str === orig.str);
 }
