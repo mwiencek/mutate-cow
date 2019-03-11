@@ -9,12 +9,16 @@
 'use strict';
 
 import clone from './clone.mjs';
-import makeProxy from './makeProxy.mjs';
+import makeProxy, {isObject} from './makeProxy.mjs';
 
 export default function mutate/*:: <Rw, Ro> */(
   source/*: Ro */,
   updater/*: (Rw) => void */,
 )/*: Ro */{
+  if (!isObject(source)) {
+    throw new Error('Expected an object to mutate');
+  }
+
   let copy;
 
   const callbacks = [];

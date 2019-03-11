@@ -484,3 +484,10 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
   assert(copy.num.valueOf() === 3);
   assert(copy.str === orig.str);
 }
+
+{ // non-objects
+
+  let error = null;
+  try { mutate(null, () => {}) } catch (e) { error = e }
+  assert(error && error.message === 'Expected an object to mutate');
+}

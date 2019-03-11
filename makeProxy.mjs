@@ -11,7 +11,7 @@ import canClone from './canClone.mjs';
 import clone from './clone.mjs';
 import {EMPTY_ARRAY, PROXY_TARGETS} from './constants.mjs';
 
-function isObject(value) {
+export function isObject(value) {
   const type = typeof value;
   return value && (type === 'object' || type === 'function');
 }
