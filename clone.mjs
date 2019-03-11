@@ -5,8 +5,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-'use strict';
-
 import canClone from './canClone.mjs';
 
 export default function clone(source, callbacks) {

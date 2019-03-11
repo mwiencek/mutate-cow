@@ -6,8 +6,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-'use strict';
-
 import clone from './clone.mjs';
 import makeProxy, {isObject} from './makeProxy.mjs';
 

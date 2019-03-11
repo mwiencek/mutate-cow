@@ -5,8 +5,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-'use strict';
-
 import canClone from './canClone.mjs';
 import clone from './clone.mjs';
 import {EMPTY_ARRAY, PROXY_TARGETS} from './constants.mjs';

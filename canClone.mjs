@@ -5,8 +5,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-'use strict';
-
 const funcToString = Function.prototype.toString;
 
 const nativeCodeRegExp = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;

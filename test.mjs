@@ -6,8 +6,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-'use strict';
-
 import mutate from './index.mjs';
 import {PROXY_TARGETS} from './constants.mjs';
 
