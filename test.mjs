@@ -491,3 +491,18 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
   try { mutate(null, () => {}) } catch (e) { error = e }
   assert(error && error.message === 'Expected an object to mutate');
 }
+
+{ // derived built-ins
+
+  class FunDate extends Date {}
+
+  let error = null;
+  try {
+    mutate(new FunDate(), (copy) => {
+      copy.setFullYear(1999);
+    });
+  } catch (e) {
+    error = e;
+  }
+  assert(error && error.message.includes('unsupported'));
+}

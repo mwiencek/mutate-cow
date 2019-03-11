@@ -16,8 +16,8 @@ export default function canClone(object) {
     return false;
   }
 
-  const proto = Reflect.getPrototypeOf(object);
-  if (proto) {
+  let proto = Reflect.getPrototypeOf(object);
+  while (proto) {
     const ctor = proto.constructor;
     // A Generator object's constructor is an object.
     if (ctor && typeof ctor === 'object') {
@@ -30,6 +30,8 @@ export default function canClone(object) {
         nativeCodeRegExp.test(funcToString.call(ctor))) {
       return false;
     }
+
+    proto = Reflect.getPrototypeOf(proto);
   }
 
   return true;
