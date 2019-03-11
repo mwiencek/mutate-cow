@@ -12,8 +12,7 @@ const funcToString = Function.prototype.toString;
 const nativeCodeRegExp = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
 
 export default function canClone(object) {
-  if (typeof object === 'function') {
-    // Covers async and generator functions.
+  if (!object || typeof object !== 'object') {
     return false;
   }
 
