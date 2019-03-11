@@ -8,8 +8,11 @@ for mjs in *.mjs; do
   if [[ "$mjs" = "test.mjs" ]]; then
     continue
   fi
-  js="${mjs%.*}.js"
-  ./node_modules/.bin/babel "$mjs" > "dist/$js"
-  sed -i '' 's/\.mjs//g' "dist/$js"
+  js="dist/${mjs%.*}.js"
+  ./node_modules/.bin/babel "$mjs" > "$js"
+  sed -i '' 's/\.mjs//g' "$js"
+  sed -i '' '/@flow/d' "$js"
+  echo '// @flow' | cat - "$js" > "$js.tmp"
+  mv "$js.tmp" "$js"
   cp "$mjs" dist/orig/
 done
