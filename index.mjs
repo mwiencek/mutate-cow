@@ -24,7 +24,7 @@ export default function mutate(source, updater) {
     }, callbacks, false);
     updater(proxy);
   } else {
-    // Slow path for IE and other environments with Proxy
+    // Slow path for IE and other environments without Proxy
     copy = clone(source, callbacks, true);
     updater(copy);
     copy = restoreEqual(source, copy);
