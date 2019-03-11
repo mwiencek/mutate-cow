@@ -1,5 +1,4 @@
 /*
- * @flow
  * Copyright (c) 2019 Michael Wiencek
  *
  * This source code is licensed under the MIT license. A copy can be found
@@ -11,10 +10,7 @@ import {PROXY_SUPPORT} from './constants.mjs';
 import restoreEqual from './restoreEqual.mjs';
 import makeProxy, {isObject} from './makeProxy.mjs';
 
-export default function mutate/*:: <Rw, Ro> */(
-  source/*: Ro */,
-  updater/*: (Rw) => void */,
-)/*: Ro */{
+export default function mutate(source, updater) {
   if (!isObject(source)) {
     throw new Error('Expected an object to mutate');
   }
@@ -23,7 +19,7 @@ export default function mutate/*:: <Rw, Ro> */(
   const callbacks = [];
 
   if (PROXY_SUPPORT) {
-    const proxy/*: Rw */ = makeProxy(source, () => {
+    const proxy = makeProxy(source, () => {
       return copy || (copy = clone(source, callbacks));
     }, callbacks, false);
     updater(proxy);

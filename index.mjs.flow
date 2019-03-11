@@ -1,0 +1,4 @@
+// @flow
+
+declare function mutate<Rw, Ro>(source: Ro, updater: (Rw) => void): Ro;
+declare export default typeof mutate;
