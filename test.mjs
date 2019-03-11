@@ -7,7 +7,7 @@
  */
 
 import mutate from './index.mjs';
-import {PROXY_TARGETS} from './constants.mjs';
+import {PROXY_SUPPORT, PROXY_TARGETS} from './constants.mjs';
 
 function assert(truth, message) {
   if (!truth) {
@@ -200,10 +200,10 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
   assert(copy !== people);
   assert(people.length === 2);
   assert(copy.length === 1);
-  assert(copy[0] === frozenBob);
+  PROXY_SUPPORT && assert(copy[0] === frozenBob);
 }
 
-{ // objects are copied only once
+if (PROXY_SUPPORT) { // objects are copied only once
 
   const copy = mutate/*:: <People, _>*/(people, (copy) => {
     const proxy1 = copy[0].death_date;
@@ -386,7 +386,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     // This should copy newObject; otherwise we'd be able to have
     // side-effects across multiple objects.
     copy.value.foo = 2;
-    assert(newObject.foo === 0);
+    PROXY_SUPPORT && assert(newObject.foo === 0);
   });
 
   assert(orig.value.foo === undefined);
@@ -414,7 +414,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     }
 
     // Can't clone functions, so the above should error.
-    assert(error && error.message.includes('unsupported'));
+    PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
 
     copy.func = () => undefined;
   });
@@ -464,7 +464,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     } catch (e) {
       error = e;
     }
-    assert(error && error.message.includes('unsupported'));
+    PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
 
     copy.num = new Number(orig.num.valueOf() + 2);
 
@@ -474,7 +474,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     } catch (e) {
       error = e;
     }
-    assert(error && error.message.includes('unsupported'));
+    PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
   });
 
   assert(orig.num.valueOf() === 1);
@@ -487,7 +487,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
   let error = null;
   try { mutate(null, () => {}) } catch (e) { error = e }
-  assert(error && error.message === 'Expected an object to mutate');
+  PROXY_SUPPORT && assert(error && error.message === 'Expected an object to mutate');
 }
 
 { // derived built-ins
@@ -502,5 +502,5 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
   } catch (e) {
     error = e;
   }
-  assert(error && error.message.includes('unsupported'));
+  PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
 }

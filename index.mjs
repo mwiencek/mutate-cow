@@ -7,6 +7,8 @@
  */
 
 import clone from './clone.mjs';
+import {PROXY_SUPPORT} from './constants.mjs';
+import restoreEqual from './restoreEqual.mjs';
 import makeProxy, {isObject} from './makeProxy.mjs';
 
 export default function mutate/*:: <Rw, Ro> */(
@@ -17,15 +19,20 @@ export default function mutate/*:: <Rw, Ro> */(
     throw new Error('Expected an object to mutate');
   }
 
-  let copy;
-
+  let copy = null;
   const callbacks = [];
 
-  const proxy/*: Rw */ = makeProxy(source, () => {
-    return copy || (copy = clone(source, callbacks));
-  }, callbacks);
-
-  updater(proxy);
+  if (PROXY_SUPPORT) {
+    const proxy/*: Rw */ = makeProxy(source, () => {
+      return copy || (copy = clone(source, callbacks));
+    }, callbacks, false);
+    updater(proxy);
+  } else {
+    // Slow path for IE and other environments with Proxy
+    copy = clone(source, callbacks, true);
+    updater(copy);
+    copy = restoreEqual(source, copy);
+  }
 
   for (let i = callbacks.length - 1; i >= 0; i--) {
     callbacks[i]();

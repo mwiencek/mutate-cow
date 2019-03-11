@@ -7,7 +7,7 @@
 
 import canClone from './canClone.mjs';
 
-export default function clone(source, callbacks) {
+export default function clone(source, callbacks, recursive) {
   const nonWritableProperties = [];
   let copy;
   if (Array.isArray(source)) {
@@ -24,6 +24,9 @@ export default function clone(source, callbacks) {
     if (desc.writable === false) {
       desc.writable = true;
       nonWritableProperties.push(name);
+    }
+    if (recursive && canClone(desc.value)) {
+      desc.value = clone(desc.value, callbacks, recursive);
     }
     Reflect.defineProperty(copy, name, desc);
   }
