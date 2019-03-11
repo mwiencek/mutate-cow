@@ -338,12 +338,15 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
 { // classes
 
-  class NiceClass {
+  class NiceBase {}
+
+  class NiceClass extends NiceBase {
     /*::
     value: string;
     */
 
     constructor() {
+      super();
       this.value = 'nice';
     }
   }
