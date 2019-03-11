@@ -421,22 +421,30 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
 { // null prorotypes
 
-  const orig/*: {__proto__: null, +value: number} */ = Object.create(null, {
+  const orig/*: {__proto__: null, +value: {__proto__: null, +number: number}} */ = Object.create(null, {
     value: {
       configurable: true,
       enumerable: true,
-      value: 1,
+      value: Object.create(null, {
+        number: {
+          configurable: true,
+          enumerable: true,
+          value: 1,
+          writable: false,
+        },
+      }),
       writable: false,
     },
   });
 
-  const copy = mutate/*:: <{__proto__: null, value: number}, _>*/(orig, (copy) => {
-    copy.value = 2;
+  const copy = mutate/*:: <{__proto__: null, value: {__proto__: null, number: number}}, _>*/(orig, (copy) => {
+    copy.value.number = 2;
   });
 
-  assert(orig.value === 1);
-  assert(copy.value === 2);
+  assert(orig.value.number === 1);
+  assert(copy.value.number === 2);
   assert(Object.getPrototypeOf(copy) === null);
+  assert(Object.getPrototypeOf(copy.value) === null);
 }
 
 { // Number / String objects

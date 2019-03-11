@@ -11,6 +11,11 @@ import canClone from './canClone.mjs';
 import clone from './clone.mjs';
 import {EMPTY_ARRAY, PROXY_TARGETS} from './constants.mjs';
 
+function isObject(value) {
+  const type = typeof value;
+  return value && (type === 'object' || type === 'function');
+}
+
 export default function makeProxy(source, getCopy, callbacks) {
   const proxyCache = new Map();
 
@@ -68,7 +73,7 @@ export default function makeProxy(source, getCopy, callbacks) {
         return Reflect.get(copy || source, prop);
       }
 
-      if (value instanceof Object) {
+      if (isObject(value)) {
         let p = proxyCache.get(prop);
         if (p) {
           return p;
@@ -106,7 +111,7 @@ export default function makeProxy(source, getCopy, callbacks) {
 
     set: function (obj, prop, value) {
       copyForWrite();
-      if (value instanceof Object) {
+      if (isObject(value)) {
         value = PROXY_TARGETS.get(value) || value;
       }
       copy[prop] = value;
