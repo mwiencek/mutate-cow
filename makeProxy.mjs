@@ -25,6 +25,7 @@ export class Context {
     this.callbacks = callbacks;
     this.proxy = null;
     this.childProxy = new Map();
+    this.currentTarget = source;
   }
 
   copyForWrite() {
@@ -39,7 +40,7 @@ export class Context {
     }
     for (let i = stack.length - 1; i >= 0; i--) {
       let ctx = stack[i];
-      ctx.copy = clone(
+      ctx.copy = ctx.currentTarget = clone(
         ctx.source,
         this.callbacks,
         false,
@@ -49,10 +50,6 @@ export class Context {
         ctx.parent.copy[ctx.prop] = ctx.copy;
       }
     }
-  }
-
-  currentTarget() {
-    return this.copy || this.source;
   }
 }
 
@@ -77,8 +74,7 @@ const handlers = {
 
   get: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
-    const currentTarget = ctx.currentTarget();
-    const desc = Reflect.getOwnPropertyDescriptor(currentTarget, prop);
+    const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
     let value;
 
     if (desc) {
@@ -95,7 +91,7 @@ const handlers = {
           'the original object instead.',
         );
       }
-      return Reflect.get(currentTarget, prop);
+      return Reflect.get(ctx.currentTarget, prop);
     }
 
     if (isObject(value)) {
@@ -119,7 +115,7 @@ const handlers = {
 
   getOwnPropertyDescriptor: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
-    const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget(), prop);
+    const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
     if (desc && (!Array.isArray(ctx.source) || prop !== 'length')) {
       desc.configurable = true;
       if (!desc.get && !desc.set) {
@@ -131,12 +127,12 @@ const handlers = {
 
   has: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
-    return Reflect.has(ctx.currentTarget(), prop);
+    return Reflect.has(ctx.currentTarget, prop);
   },
 
   ownKeys: function (fakeTarget) {
     const ctx = contextMap.get(fakeTarget);
-    return Reflect.ownKeys(ctx.currentTarget());
+    return Reflect.ownKeys(ctx.currentTarget);
   },
 
   set: function (fakeTarget, prop, value) {
@@ -145,7 +141,7 @@ const handlers = {
     if (isObject(value)) {
       const valueCtx = PROXY_CONTEXT.get(value);
       if (valueCtx) {
-        value = valueCtx.currentTarget();
+        value = valueCtx.currentTarget;
       }
     }
     ctx.copy[prop] = value;
