@@ -7,7 +7,7 @@ cp index.mjs.flow dist/index.js.flow
 cp index.mjs.flow dist/orig/
 
 for mjs in *.mjs; do
-  if [[ "$mjs" = "test.mjs" ]]; then
+  if [[ "$mjs" = "test.mjs" || "$mjs" = "bench.mjs" ]]; then
     continue
   fi
   js="dist/${mjs%.*}.js"
