@@ -7,7 +7,7 @@
 
 import canClone from './canClone.mjs';
 
-export default function clone(source, callbacks, recursive) {
+export default function clone(source, callbacks, recursive, seenValues) {
   const nonWritableProperties = [];
   let copy;
   if (Array.isArray(source)) {
@@ -19,6 +19,9 @@ export default function clone(source, callbacks, recursive) {
       throw new Error('Cloning built-in non-Array or non-Object objects is unsupported.');
     }
   }
+  if (recursive) {
+    seenValues.add(source);
+  }
   for (let name of Object.getOwnPropertyNames(source)) {
     const desc = Reflect.getOwnPropertyDescriptor(source, name);
     if (desc.writable === false) {
@@ -26,7 +29,12 @@ export default function clone(source, callbacks, recursive) {
       nonWritableProperties.push(name);
     }
     if (recursive && canClone(desc.value)) {
-      desc.value = clone(desc.value, callbacks, recursive);
+      // We could return the previously cloned value here, but that
+      // isn't how the proxy implementation behaves.
+      if (seenValues.has(desc.value)) {
+        throw new Error('Unexpected cyclic or shared reference');
+      }
+      desc.value = clone(desc.value, callbacks, true, seenValues);
     }
     Reflect.defineProperty(copy, name, desc);
   }

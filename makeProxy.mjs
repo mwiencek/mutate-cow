@@ -79,7 +79,7 @@ export default function makeProxy(source, getCopy, callbacks) {
 
         p = makeProxy(value, () => {
           copyForWrite();
-          return (copy[prop] = clone(value, callbacks, false));
+          return (copy[prop] = clone(value, callbacks, false, null));
         }, callbacks);
 
         proxyCache.set(prop, p);

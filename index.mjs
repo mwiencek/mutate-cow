@@ -20,12 +20,12 @@ export default function mutate(source, updater) {
 
   if (PROXY_SUPPORT) {
     const proxy = makeProxy(source, () => {
-      return copy || (copy = clone(source, callbacks));
+      return copy || (copy = clone(source, callbacks, false, null));
     }, callbacks, false);
     updater(proxy);
   } else {
     // Slow path for IE and other environments without Proxy
-    copy = clone(source, callbacks, true);
+    copy = clone(source, callbacks, true, new Set());
     updater(copy);
     copy = restoreEqual(source, copy);
   }

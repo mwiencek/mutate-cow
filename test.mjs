@@ -7,7 +7,11 @@
  */
 
 import mutate from './index.mjs';
-import {PROXY_SUPPORT, PROXY_TARGETS} from './constants.mjs';
+import {
+  PROXY_SUPPORT,
+  PROXY_TARGETS,
+  noProxy,
+} from './constants.mjs';
 
 function assert(truth, message) {
   if (!truth) {
@@ -282,7 +286,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
 type SharedFoo = {foo: string};
 */
 
-{ // shared reference within one object
+if (PROXY_SUPPORT) { // shared reference within one object
 
   const shared/*: $ReadOnly<SharedFoo> */ = {foo: ''};
 
@@ -503,4 +507,37 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     error = e;
   }
   PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
+}
+
+/*::
+type Cyclic = {x: Cyclic}
+*/
+
+{ // cyclic references
+
+  const object/*: Cyclic */ = {};
+  object.x = object;
+
+  if (PROXY_SUPPORT) {
+    const newObject = mutate(object, newObject => {
+      newObject.x.x = null;
+    });
+
+    assert(object.x.x.x === object);
+    assert(newObject.x.x === null);
+  }
+
+  noProxy(() => {
+    let error;
+
+    try {
+      mutate(object, newObject => {
+        newObject.x.x = null;
+      });
+    } catch (e) {
+      error = e;
+    }
+
+    assert(error && error.message === 'Unexpected cyclic or shared reference');
+  });
 }
