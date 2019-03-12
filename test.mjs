@@ -422,13 +422,17 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
 { // functions
 
-  const origFunc = () => undefined;
+  const origFunc = () => 'abc';
 
-  const orig/*: {|+func: () => void|} */ = {
+  const orig/*: {|+func: () => string|} */ = {
     func: origFunc,
   };
 
-  const copy = mutate/*:: <{func: () => void}, _>*/(orig, (copy) => {
+  const copy = mutate/*:: <{func: () => string}, _>*/(orig, (copy) => {
+    assert(typeof copy.func === 'function');
+    assert(copy.func instanceof Function);
+    assert(copy.func() === 'abc');
+
     let error;
     try {
       copy.func.prop = true;
@@ -439,7 +443,8 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     // Can't clone functions, so the above should error.
     PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
 
-    copy.func = () => undefined;
+    copy.func = () => '';
+    assert(copy.func() === '');
   });
 }
 

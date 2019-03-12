@@ -54,6 +54,11 @@ export class Context {
 }
 
 const handlers = {
+  apply: function (fakeTarget, thisArg, argumentsList) {
+    const ctx = contextMap.get(fakeTarget);
+    return Reflect.apply(ctx.source, thisArg, argumentsList);
+  },
+
   // Since a `set` handler is defined, this should only be called
   // when `defineProperty` is called directly?
   defineProperty: function (fakeTarget, prop, desc) {
@@ -158,9 +163,11 @@ export default function makeProxy(ctx) {
   // Using a fake proxy target avoids having to deal with proxy
   // invariants. See section 9.5.8 of
   // https://www.ecma-international.org/ecma-262/8.0/
-  const fakeTarget = Array.isArray(source)
-    ? []
-    : Object.create(Reflect.getPrototypeOf(source));
+  const fakeTarget = typeof source === 'function'
+    ? (() => undefined)
+    : (Array.isArray(source)
+        ? []
+        : Object.create(Reflect.getPrototypeOf(source)));
 
   const proxy = new Proxy(fakeTarget, handlers);
   PROXY_CONTEXT.set(proxy, ctx);
