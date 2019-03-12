@@ -153,6 +153,25 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
   assert(!copy.hasOwnProperty('foo'));
 }
 
+{ // overwriting a cloned object
+
+  const orig = {foo: {bar: 1}};
+  const bar3 = {bar: 3};
+
+  const copy = mutate/*:: <{foo: {bar: number}}, _>*/(orig, (copy) => {
+    copy.foo.bar = 2;
+    assert(copy.foo.bar === 2);
+    copy.foo = bar3;
+    assert(copy.foo.bar === 3);
+    copy.foo.bar = 4;
+    assert(copy.foo.bar === 4);
+    PROXY_SUPPORT && assert(bar3.bar === 3);
+  });
+
+  assert(orig.foo.bar === 1);
+  assert(copy.foo.bar === 4);
+}
+
 { // defineProperty
 
   const orig/*: {+foo?: number} */ = {};

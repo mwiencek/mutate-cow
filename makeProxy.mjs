@@ -149,6 +149,9 @@ const handlers = {
       }
     }
     ctx.copy[prop] = value;
+    // This must be deleted, because it can now refer to an outdated
+    // value (i.e. a previous copy we made).
+    ctx.childProxy.delete(prop);
     return true;
   },
 };
