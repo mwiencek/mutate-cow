@@ -7,116 +7,166 @@
 
 import canClone from './canClone.mjs';
 import clone from './clone.mjs';
-import {EMPTY_ARRAY, PROXY_TARGETS} from './constants.mjs';
+import {PROXY_CONTEXT} from './constants.mjs';
 
 export function isObject(value) {
   const type = typeof value;
   return value && (type === 'object' || type === 'function');
 }
 
-export default function makeProxy(source, getCopy, callbacks) {
-  const proxyCache = new Map();
+const contextMap = new WeakMap();
+
+export class Context {
+  constructor(parent, source, prop, callbacks) {
+    this.parent = parent;
+    this.source = source;
+    this.prop = prop;
+    this.copy = null;
+    this.callbacks = callbacks;
+    this.proxy = null;
+    this.childProxy = new Map();
+  }
+
+  copyForWrite() {
+    if (this.copy) {
+      return;
+    }
+    const stack = [];
+    let parent = this;
+    while (parent && !parent.copy) {
+      stack.push(parent);
+      parent = parent.parent;
+    }
+    for (let i = stack.length - 1; i >= 0; i--) {
+      let ctx = stack[i];
+      ctx.copy = clone(
+        ctx.source,
+        this.callbacks,
+        false,
+        null,
+      );
+      if (ctx.prop) {
+        ctx.parent.copy[ctx.prop] = ctx.copy;
+      }
+    }
+  }
+
+  currentTarget() {
+    return this.copy || this.source;
+  }
+}
+
+const handlers = {
+  // Since a `set` handler is defined, this should only be called
+  // when `defineProperty` is called directly?
+  defineProperty: function (fakeTarget, prop, desc) {
+    const ctx = contextMap.get(fakeTarget);
+    ctx.copyForWrite();
+    // Non-configurable properties must exist on the proxy target.
+    if (desc.configurable === false && !fakeTarget.hasOwnProperty(prop)) {
+      Reflect.defineProperty(fakeTarget, prop, desc);
+    }
+    return Reflect.defineProperty(ctx.copy, prop, desc);
+  },
+
+  deleteProperty: function (fakeTarget, prop) {
+    const ctx = contextMap.get(fakeTarget);
+    ctx.copyForWrite();
+    return Reflect.deleteProperty(ctx.copy, prop);
+  },
+
+  get: function (fakeTarget, prop) {
+    const ctx = contextMap.get(fakeTarget);
+    const currentTarget = ctx.currentTarget();
+    const desc = Reflect.getOwnPropertyDescriptor(currentTarget, prop);
+    let value;
+
+    if (desc) {
+      if (desc.get) {
+        return desc.get.call(ctx.proxy, prop);
+      }
+      value = desc.value;
+    } else {
+      if (!canClone(ctx.source)) {
+        throw new Error(
+          'Accessing properties and methods through built-in ' +
+          'non-Array or non-Object objects is unsupported. ' +
+          'If you know what you\'re doing, access them through ' +
+          'the original object instead.',
+        );
+      }
+      return Reflect.get(currentTarget, prop);
+    }
+
+    if (isObject(value)) {
+      let p = ctx.childProxy.get(prop);
+      if (p) {
+        return p;
+      }
+
+      p = makeProxy(new Context(
+        ctx,
+        value,
+        prop,
+        ctx.callbacks,
+      ));
+
+      ctx.childProxy.set(prop, p);
+      return p;
+    }
+    return value;
+  },
+
+  getOwnPropertyDescriptor: function (fakeTarget, prop) {
+    const ctx = contextMap.get(fakeTarget);
+    const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget(), prop);
+    if (desc && (!Array.isArray(ctx.source) || prop !== 'length')) {
+      desc.configurable = true;
+      if (!desc.get && !desc.set) {
+        desc.writable = true;
+      }
+    }
+    return desc;
+  },
+
+  has: function (fakeTarget, prop) {
+    const ctx = contextMap.get(fakeTarget);
+    return Reflect.has(ctx.currentTarget(), prop);
+  },
+
+  ownKeys: function (fakeTarget) {
+    const ctx = contextMap.get(fakeTarget);
+    return Reflect.ownKeys(ctx.currentTarget());
+  },
+
+  set: function (fakeTarget, prop, value) {
+    const ctx = contextMap.get(fakeTarget);
+    ctx.copyForWrite();
+    if (isObject(value)) {
+      const valueCtx = PROXY_CONTEXT.get(value);
+      if (valueCtx) {
+        value = valueCtx.currentTarget();
+      }
+    }
+    ctx.copy[prop] = value;
+    return true;
+  },
+};
+
+export default function makeProxy(ctx) {
+  const source = ctx.source;
 
   // Using a fake proxy target avoids having to deal with proxy
   // invariants. See section 9.5.8 of
   // https://www.ecma-international.org/ecma-262/8.0/
-  const isArray = Array.isArray(source);
-  const fakeTarget = isArray
-    ? EMPTY_ARRAY
+  const fakeTarget = Array.isArray(source)
+    ? []
     : Object.create(Reflect.getPrototypeOf(source));
 
-  let copy;
-  function copyForWrite() {
-    if (!copy) {
-      copy = getCopy();
-      PROXY_TARGETS.set(proxy, copy);
-    }
-  }
+  const proxy = new Proxy(fakeTarget, handlers);
+  PROXY_CONTEXT.set(proxy, ctx);
+  ctx.proxy = proxy;
+  contextMap.set(fakeTarget, ctx);
 
-  const proxy = new Proxy(fakeTarget, {
-    // Since a `set` handler is defined, this should only be called
-    // when `defineProperty` is called directly?
-    defineProperty: function (obj, prop, desc) {
-      copyForWrite();
-      // Non-configurable properties must exist on the proxy target.
-      if (desc.configurable === false && !fakeTarget.hasOwnProperty(prop)) {
-        Reflect.defineProperty(fakeTarget, prop, desc);
-      }
-      return Reflect.defineProperty(copy, prop, desc);
-    },
-
-    deleteProperty: function (obj, prop) {
-      copyForWrite();
-      return Reflect.deleteProperty(copy, prop);
-    },
-
-    get: function (obj, prop) {
-      const desc = Reflect.getOwnPropertyDescriptor(copy || source, prop);
-      let value;
-
-      if (desc) {
-        if (desc.get) {
-          return desc.get.call(proxy, prop);
-        }
-        value = desc.value;
-      } else {
-        if (!canClone(source)) {
-          throw new Error(
-            'Accessing properties and methods through built-in ' +
-            'non-Array or non-Object objects is unsupported. ' +
-            'If you know what you\'re doing, access them through ' +
-            'the original object instead.',
-          );
-        }
-        return Reflect.get(copy || source, prop);
-      }
-
-      if (isObject(value)) {
-        let p = proxyCache.get(prop);
-        if (p) {
-          return p;
-        }
-
-        p = makeProxy(value, () => {
-          copyForWrite();
-          return (copy[prop] = clone(value, callbacks, false, null));
-        }, callbacks);
-
-        proxyCache.set(prop, p);
-        return p;
-      }
-      return value;
-    },
-
-    getOwnPropertyDescriptor: function (obj, prop) {
-      const desc = Reflect.getOwnPropertyDescriptor(copy || source, prop);
-      if (desc && (!isArray || prop !== 'length')) {
-        desc.configurable = true;
-        if (!desc.get && !desc.set) {
-          desc.writable = true;
-        }
-      }
-      return desc;
-    },
-
-    has: function (obj, prop) {
-      return Reflect.has(copy || source, prop);
-    },
-
-    ownKeys: function (obj) {
-      return Reflect.ownKeys(copy || source);
-    },
-
-    set: function (obj, prop, value) {
-      copyForWrite();
-      if (isObject(value)) {
-        value = PROXY_TARGETS.get(value) || value;
-      }
-      copy[prop] = value;
-      return true;
-    },
-  });
-
-  PROXY_TARGETS.set(proxy, source);
   return proxy;
 }

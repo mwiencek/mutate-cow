@@ -1,5 +1,3 @@
-export const EMPTY_ARRAY = [];
-
 export let PROXY_SUPPORT = true;
 try {
   eval('new Proxy({}, {})');
@@ -14,4 +12,4 @@ export const noProxy = (cb) => {
   PROXY_SUPPORT = oldValue;
 };
 
-export const PROXY_TARGETS = new WeakMap();
+export const PROXY_CONTEXT = new WeakMap();
