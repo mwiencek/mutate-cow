@@ -592,3 +592,25 @@ type Cyclic = {x: Cyclic}
     assert(error && error.message === 'Unexpected cyclic or shared reference');
   });
 }
+
+{ // using a copy reference in an object spread
+
+  const orig/*: any */ = {
+    foo: {
+      bar: {
+        baz: 1,
+      },
+      func: function () {
+        return this;
+      },
+    },
+  };
+
+  const copy = mutate/*:: <any, _>*/(orig, (copy) => {
+    copy.foo = {...copy.foo};
+    assert(copy.foo.func() === copy.foo);
+  });
+
+  assert(copy.foo.func() === copy.foo);
+  assert(copy.foo.bar === orig.foo.bar);
+}
