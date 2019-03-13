@@ -8,11 +8,8 @@
 import canClone from './canClone.mjs';
 import clone from './clone.mjs';
 import {PROXY_CONTEXT} from './constants.mjs';
-
-export function isObject(value) {
-  const type = typeof value;
-  return value && (type === 'object' || type === 'function');
-}
+import isObject from './isObject.mjs';
+import unwrap from './unwrap.mjs';
 
 const contextMap = new WeakMap();
 
@@ -143,13 +140,7 @@ const handlers = {
   set: function (fakeTarget, prop, value) {
     const ctx = contextMap.get(fakeTarget);
     ctx.copyForWrite();
-    if (isObject(value)) {
-      const valueCtx = PROXY_CONTEXT.get(value);
-      if (valueCtx) {
-        value = valueCtx.currentTarget;
-      }
-    }
-    ctx.copy[prop] = value;
+    ctx.copy[prop] = unwrap(value);
     // This must be deleted, because it can now refer to an outdated
     // value (i.e. a previous copy we made).
     ctx.childProxy.delete(prop);

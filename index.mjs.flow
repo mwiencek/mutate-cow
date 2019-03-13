@@ -1,4 +1,8 @@
 // @flow
 
-declare function mutate<Rw, Ro>(source: Ro, updater: (Rw) => void): Ro;
+declare function mutate<Rw, Ro>(
+  source: Ro,
+  updater: (Rw, <T>(T) => T) => void,
+): Ro;
+
 declare export default typeof mutate;

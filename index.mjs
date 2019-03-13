@@ -7,8 +7,10 @@
 
 import clone from './clone.mjs';
 import {PROXY_SUPPORT} from './constants.mjs';
+import isObject from './isObject.mjs';
 import restoreEqual from './restoreEqual.mjs';
-import makeProxy, {Context, isObject} from './makeProxy.mjs';
+import makeProxy, {Context} from './makeProxy.mjs';
+import unwrap from './unwrap.mjs';
 
 export default function mutate(source, updater) {
   if (!isObject(source)) {
@@ -25,12 +27,12 @@ export default function mutate(source, updater) {
       null,
       callbacks,
     );
-    updater(makeProxy(ctx));
+    updater(makeProxy(ctx), unwrap);
     copy = ctx.copy;
   } else {
     // Slow path for IE and other environments without Proxy
     copy = clone(source, callbacks, true, new Set());
-    updater(copy);
+    updater(copy, unwrap);
     copy = restoreEqual(source, copy);
   }
 

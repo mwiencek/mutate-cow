@@ -606,8 +606,8 @@ type Cyclic = {x: Cyclic}
     },
   };
 
-  const copy = mutate/*:: <any, _>*/(orig, (copy) => {
-    copy.foo = {...copy.foo};
+  const copy = mutate/*:: <any, _>*/(orig, (copy, unwrap) => {
+    copy.foo = {...unwrap(copy.foo)};
     assert(copy.foo.func() === copy.foo);
   });
 
