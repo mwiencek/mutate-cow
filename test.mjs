@@ -626,3 +626,20 @@ type Cyclic = {x: Cyclic}
   assert(copy.foo.func() === copy.foo);
   assert(copy.foo.bar === orig.foo.bar);
 }
+
+{ // construct
+
+  function Cls() {
+    this.foo = 1;
+  }
+
+  const orig = {
+    Cls,
+  };
+
+  const copy = mutate(orig, (copy) => {
+    const c = new copy.Cls();
+    assert(c instanceof Cls);
+    assert(c.foo === 1);
+  });
+}

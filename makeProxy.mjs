@@ -85,6 +85,12 @@ const handlers = {
     return Reflect.apply(ctx.source, thisArg, argumentsList);
   },
 
+  construct: function (fakeTarget, args) {
+    const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
+    return new ctx.source(...args);
+  },
+
   // Since a `set` handler is defined, this should only be called
   // when `defineProperty` is called directly?
   defineProperty: function (fakeTarget, prop, desc) {
@@ -191,7 +197,7 @@ export default function makeProxy(ctx) {
   // invariants. See section 9.5.8 of
   // https://www.ecma-international.org/ecma-262/8.0/
   const fakeTarget = typeof source === 'function'
-    ? (() => undefined)
+    ? (new Function())
     : (Array.isArray(source)
         ? []
         : Object.create(Reflect.getPrototypeOf(source)));
