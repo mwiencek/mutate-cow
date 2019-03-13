@@ -143,14 +143,41 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
 
 { // object delete
 
-  const orig = {foo: 1};
+  const orig = {};
 
-  const copy = mutate/*:: <{foo: number}, _>*/(orig, (copy) => {
+  Object.defineProperty(orig, 'foo', {
+    configurable: false,
+    enumerable: true,
+    writable: true,
+    value: 1,
+  });
+
+  Object.defineProperty(orig, 'bar', {
+    configurable: false,
+    enumerable: true,
+    writable: true,
+    value: 2,
+  });
+
+  Object.defineProperty(orig, 'baz', {
+    configurable: true,
+    enumerable: true,
+    writable: false,
+    value: 3,
+  });
+
+  const copy = mutate/*:: <{foo: number, bar: number, baz: number}, _>*/(orig, (copy) => {
     delete copy.foo;
+    delete copy.bar;
+    delete copy.baz;
   });
 
   assert(orig.foo === 1);
+  assert(orig.bar === 2);
+  assert(orig.baz === 3);
   assert(!copy.hasOwnProperty('foo'));
+  assert(!copy.hasOwnProperty('bar'));
+  assert(!copy.hasOwnProperty('baz'));
 }
 
 { // overwriting a cloned object
