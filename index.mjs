@@ -23,10 +23,12 @@ export default function mutate(source, updater) {
   if (PROXY_SUPPORT) {
     const ctx = new Context(
       null,
+      null,
       source,
       null,
-      callbacks,
     );
+    ctx.root = ctx;
+    ctx.callbacks = callbacks;
     updater(makeProxy(ctx), unwrap);
     copy = ctx.copy;
   } else {

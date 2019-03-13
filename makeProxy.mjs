@@ -14,12 +14,13 @@ import unwrap from './unwrap.mjs';
 const contextMap = new WeakMap();
 
 export class Context {
-  constructor(parent, source, prop, callbacks) {
+  constructor(root, parent, source, prop) {
+    this.root = root;
     this.parent = parent;
     this.source = source;
     this.prop = prop;
     this.copy = null;
-    this.callbacks = callbacks;
+    this.callbacks = null;
     this.proxy = null;
     this.childProxy = new Map();
     this.currentTarget = source;
@@ -39,7 +40,7 @@ export class Context {
       let ctx = stack[i];
       ctx.copy = ctx.currentTarget = clone(
         ctx.source,
-        this.callbacks,
+        ctx.root.callbacks,
         false,
         null,
       );
@@ -103,10 +104,10 @@ const handlers = {
       }
 
       p = makeProxy(new Context(
+        ctx.root,
         ctx,
         value,
         prop,
-        ctx.callbacks,
       ));
 
       ctx.childProxy.set(prop, p);
