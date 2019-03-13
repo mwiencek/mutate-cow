@@ -606,7 +606,19 @@ type Cyclic = {x: Cyclic}
     },
   };
 
-  const copy = mutate/*:: <any, _>*/(orig, (copy, unwrap) => {
+  let copy = mutate/*:: <any, _>*/(orig, (copy) => {
+    copy.foo = {...copy.foo};
+  });
+
+  let error = null;
+  try {
+    copy.foo.bar.baz;
+  } catch (e) {
+    error = e;
+  }
+  PROXY_SUPPORT && assert(error && error.message.includes('forgotten to call unwrap'));
+
+  copy = mutate/*:: <any, _>*/(orig, (copy, unwrap) => {
     copy.foo = {...unwrap(copy.foo)};
     assert(copy.foo.func() === copy.foo);
   });

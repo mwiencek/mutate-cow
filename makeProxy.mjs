@@ -24,10 +24,11 @@ export class Context {
     this.proxy = null;
     this.childProxy = new Map();
     this.currentTarget = source;
+    this.isRevoked = false;
   }
 
   copyForWrite() {
-    if (this.copy) {
+    if (this.copy || this.isRevoked || this.root.isRevoked) {
       return;
     }
     const stack = [];
@@ -49,11 +50,38 @@ export class Context {
       }
     }
   }
+
+  revoke() {
+    if (this.isRevoked) {
+      return;
+    }
+    this.root = null;
+    this.parent = null;
+    this.source = null;
+    this.prop = null;
+    this.copy = null;
+    this.callbacks = null;
+    this.proxy = null;
+    this.childProxy = null
+    this.currentTarget = null;
+    this.isRevoked = true;
+  }
+
+  throwIfRevoked() {
+    if (this.root.isRevoked) {
+      this.revoke();
+      throw new Error(
+        'This Proxy can no longer be accessed. ' +
+        'You may have forgotten to call unwrap() on an assigned value.',
+      );
+    }
+  }
 }
 
 const handlers = {
   apply: function (fakeTarget, thisArg, argumentsList) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     return Reflect.apply(ctx.source, thisArg, argumentsList);
   },
 
@@ -61,6 +89,7 @@ const handlers = {
   // when `defineProperty` is called directly?
   defineProperty: function (fakeTarget, prop, desc) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     ctx.copyForWrite();
     // Non-configurable properties must exist on the proxy target.
     if (desc.configurable === false && !fakeTarget.hasOwnProperty(prop)) {
@@ -71,12 +100,14 @@ const handlers = {
 
   deleteProperty: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     ctx.copyForWrite();
     return Reflect.deleteProperty(ctx.copy, prop);
   },
 
   get: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
     let value;
 
@@ -118,6 +149,7 @@ const handlers = {
 
   getOwnPropertyDescriptor: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
     if (desc && (!Array.isArray(ctx.source) || prop !== 'length')) {
       desc.configurable = true;
@@ -130,16 +162,19 @@ const handlers = {
 
   has: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     return Reflect.has(ctx.currentTarget, prop);
   },
 
   ownKeys: function (fakeTarget) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     return Reflect.ownKeys(ctx.currentTarget);
   },
 
   set: function (fakeTarget, prop, value) {
     const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
     ctx.copyForWrite();
     ctx.copy[prop] = unwrap(value);
     // This must be deleted, because it can now refer to an outdated

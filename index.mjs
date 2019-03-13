@@ -31,6 +31,7 @@ export default function mutate(source, updater) {
     ctx.callbacks = callbacks;
     updater(makeProxy(ctx), unwrap);
     copy = ctx.copy;
+    ctx.revoke();
   } else {
     // Slow path for IE and other environments without Proxy
     copy = clone(source, callbacks, true, new Set());
