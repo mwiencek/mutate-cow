@@ -19,7 +19,6 @@ export class Context {
     this.parent = parent;
     this.source = source;
     this.prop = prop;
-    this.copy = null;
     this.callbacks = null;
     this.proxy = null;
     this.childProxy = null;
@@ -28,25 +27,27 @@ export class Context {
   }
 
   copyForWrite() {
-    if (this.copy || this.isRevoked || this.root.isRevoked) {
+    if (this.currentTarget !== this.source ||
+        this.isRevoked ||
+        this.root.isRevoked) {
       return;
     }
     const stack = [];
     let parent = this;
-    while (parent && !parent.copy) {
+    while (parent && parent.source === parent.currentTarget) {
       stack.push(parent);
       parent = parent.parent;
     }
     for (let i = stack.length - 1; i >= 0; i--) {
       let ctx = stack[i];
-      ctx.copy = ctx.currentTarget = clone(
+      ctx.currentTarget = clone(
         ctx.source,
         ctx.root.callbacks,
         false,
         null,
       );
       if (ctx.prop) {
-        ctx.parent.copy[ctx.prop] = ctx.copy;
+        ctx.parent.currentTarget[ctx.prop] = ctx.currentTarget;
       }
     }
   }
@@ -59,7 +60,6 @@ export class Context {
     this.parent = null;
     this.source = null;
     this.prop = null;
-    this.copy = null;
     this.callbacks = null;
     this.proxy = null;
     this.childProxy = null
@@ -101,14 +101,14 @@ const handlers = {
     if (desc.configurable === false && !fakeTarget.hasOwnProperty(prop)) {
       Reflect.defineProperty(fakeTarget, prop, desc);
     }
-    return Reflect.defineProperty(ctx.copy, prop, desc);
+    return Reflect.defineProperty(ctx.currentTarget, prop, desc);
   },
 
   deleteProperty: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
     ctx.throwIfRevoked();
     ctx.copyForWrite();
-    return Reflect.deleteProperty(ctx.copy, prop);
+    return Reflect.deleteProperty(ctx.currentTarget, prop);
   },
 
   get: function (fakeTarget, prop) {
@@ -186,7 +186,7 @@ const handlers = {
     const ctx = contextMap.get(fakeTarget);
     ctx.throwIfRevoked();
     ctx.copyForWrite();
-    ctx.copy[prop] = unwrap(value);
+    ctx.currentTarget[prop] = unwrap(value);
     // This must be deleted, because it can now refer to an outdated
     // value (i.e. a previous copy we made).
     if (ctx.childProxy) {

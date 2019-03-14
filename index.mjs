@@ -30,7 +30,7 @@ export default function mutate(source, updater) {
     ctx.root = ctx;
     ctx.callbacks = callbacks;
     updater(makeProxy(ctx), unwrap);
-    copy = ctx.copy;
+    copy = ctx.currentTarget;
     ctx.revoke();
   } else {
     // Slow path for IE and other environments without Proxy
@@ -43,5 +43,5 @@ export default function mutate(source, updater) {
     callbacks[i]();
   }
 
-  return copy || source;
+  return copy;
 }
