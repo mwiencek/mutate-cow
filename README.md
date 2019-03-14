@@ -1,5 +1,18 @@
 # mutate-cow
 
+```JavaScript
+import mutate from 'mutate-cow';
+
+const animals = Object.freeze({
+  cats: Object.freeze(['ragamuffin', 'shorthair', 'maine coon']),
+});
+
+const newAnimals = mutate(animals, copy => {
+  copy.cats.push('bobtail');
+  copy.dogs = Object.freeze(['hound']);
+});
+```
+
 This module allows you to update an immutable object as if it were mutable, inside a callback. It has copy-on-write semantics, so properties are only changed if you write to them. (In fact, if you perform no writes, the same object is returned back.) This makes it useful in conjuction with libraries like React, where state may be compared by reference.
 
 It's implemented using [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects. A slow path that recursively clones and compares objects is used if `Proxy` is unavailable, but it's not fully compatible.
