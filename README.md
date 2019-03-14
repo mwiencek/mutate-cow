@@ -41,3 +41,39 @@ mutate(orig, copy => {
   copy.date = newDate;
   copy.string = new String('yello');
 });
+```
+
+### Unwrapping proxied values
+
+When you read from a property inside the callback, a `Proxy` is returned that can read from the source object (or working copy) and write to the copy. You may then wonder what happens if you perform `copy.foo = copy.bar`: will this assign a `Proxy`, or the value it targets? The answer in this case is the value it targets, because `mutate-cow` automatically unwraps proxied values on the RHS of assignments. However, suppose you did something like this instead:
+
+```JavaScript
+const orig = {foo: {value: 1}, bar: {value: 2}};
+
+const copy = mutate(orig, copy => {
+  // this will assign an object resembling {value: Proxy}!
+  copy.foo = {...copy.bar};
+});
+```
+
+In the above case, `copy.bar.value` is a `Proxy`, but `{...copy.bar}` (the assigned object) is not. `mutate-cow` doesn't *deeply* unwrap values, so you have to do it yourself in this case:
+
+```JavaScript
+const orig = {foo: {value: 1}, bar: {value: 2}};
+
+const copy = mutate(orig, (copy, unwrap) => {
+  copy.foo = {...unwrap(copy.bar)};
+});
+```
+
+If you don't do this, accessing `copy.foo.value` outside the callback will throw an error, because the `Proxy` will be revoked! An alternative which avoids this situation entirely is to just reference the source object where possible:
+
+```JavaScript
+const orig = {foo: {value: 1}, bar: {value: 2}};
+
+const copy = mutate(orig, copy => {
+  copy.foo = {...orig.bar};
+});
+```
+
+In fact, all `unwrap` does is return the underlying data from the source, or the working copy where you've made changes.
