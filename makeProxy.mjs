@@ -22,7 +22,7 @@ export class Context {
     this.copy = null;
     this.callbacks = null;
     this.proxy = null;
-    this.childProxy = new Map();
+    this.childProxy = null;
     this.currentTarget = source;
     this.isRevoked = false;
   }
@@ -135,7 +135,11 @@ const handlers = {
     }
 
     if (isObject(value)) {
-      let p = ctx.childProxy.get(prop);
+      if (!ctx.childProxy) {
+        ctx.childProxy = Object.create(null);
+      }
+
+      let p = ctx.childProxy[prop];
       if (p) {
         return p;
       }
@@ -147,7 +151,7 @@ const handlers = {
         prop,
       ));
 
-      ctx.childProxy.set(prop, p);
+      ctx.childProxy[prop] = p;
       return p;
     }
     return value;
@@ -185,7 +189,9 @@ const handlers = {
     ctx.copy[prop] = unwrap(value);
     // This must be deleted, because it can now refer to an outdated
     // value (i.e. a previous copy we made).
-    ctx.childProxy.delete(prop);
+    if (ctx.childProxy) {
+      delete ctx.childProxy[prop];
+    }
     return true;
   },
 };
