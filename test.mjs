@@ -166,7 +166,7 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
     value: 3,
   });
 
-  const copy = mutate/*:: <{foo: number, bar: number, baz: number}, _>*/(orig, (copy) => {
+  const copy = mutate/*:: <{foo?: number, bar?: number, baz?: number}, _>*/(orig, (copy) => {
     delete copy.foo;
     delete copy.bar;
     delete copy.baz;
@@ -455,7 +455,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     func: origFunc,
   };
 
-  const copy = mutate/*:: <{func: () => string}, _>*/(orig, (copy) => {
+  const copy = mutate/*:: <{func: (() => string) & {prop?: boolean}}, _>*/(orig, (copy) => {
     assert(typeof copy.func === 'function');
     assert(copy.func instanceof Function);
     assert(copy.func() === 'abc');
