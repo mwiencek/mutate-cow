@@ -40,7 +40,8 @@ export default function mutate(source, updater) {
   }
 
   for (let i = callbacks.length - 1; i >= 0; i--) {
-    callbacks[i]();
+    const [callback, ...args] = callbacks[i];
+    callback(...args);
   }
 
   return copy;

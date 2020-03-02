@@ -7,6 +7,16 @@
 
 import canClone from './canClone.mjs';
 
+function restoreDescriptors(copy, changedDescriptors) {
+  for (let [name, origDesc] of Object.entries(changedDescriptors)) {
+    const desc = Reflect.getOwnPropertyDescriptor(copy, name);
+    if (desc) {
+      Object.assign(desc, origDesc);
+      Reflect.defineProperty(copy, name, desc);
+    }
+  }
+}
+
 export default function clone(source, callbacks, recursive, seenValues) {
   let changedDescriptors;
   let copy;
@@ -50,22 +60,11 @@ export default function clone(source, callbacks, recursive, seenValues) {
     }
     Reflect.defineProperty(copy, name, desc);
   }
-  const isExtensible = Reflect.isExtensible(source);
-  if (!isExtensible || changedDescriptors) {
-    callbacks.push(() => {
-      if (changedDescriptors) {
-        for (let [name, origDesc] of Object.entries(changedDescriptors)) {
-          const desc = Reflect.getOwnPropertyDescriptor(copy, name);
-          if (desc) {
-            Object.assign(desc, origDesc);
-            Reflect.defineProperty(copy, name, desc);
-          }
-        }
-      }
-      if (!isExtensible) {
-        Reflect.preventExtensions(copy);
-      }
-    });
+  if (changedDescriptors) {
+    callbacks.push([restoreDescriptors, copy, changedDescriptors]);
+  }
+  if (!Reflect.isExtensible(source)) {
+    callbacks.push([Reflect.preventExtensions, copy]);
   }
   return copy;
 }
