@@ -643,3 +643,27 @@ type Cyclic = {x: Cyclic}
     assert(c.foo === 1);
   });
 }
+
+{ // Object.freeze on a proxied object
+
+  // Arrays are somewhat special, because Object.freeze will attempt to make
+  // the `length` property non-configurable and non-writable via the
+  // defineProperty trap. However, a non-configurable property "cannot be
+  // non-writable, unless there exists a corresponding non-configurable,
+  // non-writable own property on the target object," i.e. our fake proxy
+  // target.
+  const copy = mutate([0], copy => {
+    Object.freeze(copy);
+    let error;
+    try {
+      copy.error = true;
+    } catch (e) {
+      error = e;
+    }
+    PROXY_SUPPORT && assert(
+      error && error.message.includes('not extensible'),
+    );
+    assert(Object.isExtensible(copy) === false);
+  });
+  assert(Object.isExtensible(copy) === false);
+}

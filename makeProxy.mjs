@@ -7,7 +7,7 @@
 
 import canClone from './canClone.mjs';
 import clone from './clone.mjs';
-import {PROXY_CONTEXT} from './constants.mjs';
+import {CONFIGURABLE_AND_WRITABLE, PROXY_CONTEXT} from './constants.mjs';
 import isObject from './isObject.mjs';
 import unwrap from './unwrap.mjs';
 
@@ -98,7 +98,7 @@ const handlers = {
     ctx.throwIfRevoked();
     ctx.copyForWrite();
     // Non-configurable properties must exist on the proxy target.
-    if (desc.configurable === false && !fakeTarget.hasOwnProperty(prop)) {
+    if (desc.configurable === false) {
       Reflect.defineProperty(fakeTarget, prop, desc);
     }
     return Reflect.defineProperty(ctx.currentTarget, prop, desc);
@@ -182,6 +182,20 @@ const handlers = {
     return Reflect.ownKeys(ctx.currentTarget);
   },
 
+  preventExtensions: function (fakeTarget) {
+    const ctx = contextMap.get(fakeTarget);
+    ctx.throwIfRevoked();
+    ctx.copyForWrite();
+    // If the target object is not extensible, then the result of `ownKeys`
+    // must contain all the keys of the own properties of the target object
+    // and no other values. See section 9.5.11 of
+    // https://www.ecma-international.org/ecma-262/8.0/
+    copyOwnPropertiesToFakeTarget(ctx.currentTarget, fakeTarget);
+    Reflect.preventExtensions(fakeTarget);
+    Reflect.preventExtensions(ctx.currentTarget);
+    return true;
+  },
+
   set: function (fakeTarget, prop, value) {
     const ctx = contextMap.get(fakeTarget);
     ctx.throwIfRevoked();
@@ -195,6 +209,12 @@ const handlers = {
     return true;
   },
 };
+
+function copyOwnPropertiesToFakeTarget(source, fakeTarget) {
+  for (const name of Object.getOwnPropertyNames(source)) {
+    Reflect.defineProperty(fakeTarget, name, CONFIGURABLE_AND_WRITABLE);
+  }
+}
 
 export default function makeProxy(ctx) {
   const source = ctx.source;
