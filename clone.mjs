@@ -7,6 +7,12 @@
 
 import canClone from './canClone.mjs';
 
+import {
+  NON_CONFIGURABLE,
+  NON_CONFIGURABLE_AND_WRITABLE,
+  NON_WRITABLE,
+} from './constants.mjs';
+
 function restoreDescriptors(copy, changedDescriptors) {
   for (let [name, origDesc] of Object.entries(changedDescriptors)) {
     const desc = Reflect.getOwnPropertyDescriptor(copy, name);
@@ -34,15 +40,17 @@ export default function clone(source, callbacks, recursive, seenValues) {
   }
   for (let name of Object.getOwnPropertyNames(source)) {
     const desc = Reflect.getOwnPropertyDescriptor(source, name);
+    const nonConfigurable = desc.configurable === false;
     let origDesc;
-    if (desc.configurable === false) {
+    if (nonConfigurable) {
       desc.configurable = true;
-      origDesc = {configurable: false};
+      origDesc = NON_CONFIGURABLE;
     }
     if (desc.writable === false) {
       desc.writable = true;
-      origDesc = origDesc || {};
-      origDesc.writable = false;
+      origDesc = nonConfigurable
+        ? NON_CONFIGURABLE_AND_WRITABLE
+        : NON_WRITABLE;
     }
     if (origDesc) {
       if (!changedDescriptors) {

@@ -14,6 +14,15 @@ export const noProxy = (cb) => {
 
 export const PROXY_CONTEXT = new WeakMap();
 
+export const NON_CONFIGURABLE = Object.freeze({configurable: false});
+
+export const NON_WRITABLE = Object.freeze({writable: false});
+
+export const NON_CONFIGURABLE_AND_WRITABLE = Object.freeze({
+  configurable: false,
+  writable: false,
+});
+
 export const CONFIGURABLE_AND_WRITABLE = Object.freeze({
   configurable: true,
   writable: true,
