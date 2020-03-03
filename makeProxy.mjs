@@ -160,9 +160,11 @@ const handlers = {
   getOwnPropertyDescriptor: function (fakeTarget, prop) {
     const ctx = contextMap.get(fakeTarget);
     ctx.throwIfRevoked();
-    const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
-    if (desc && (!Array.isArray(ctx.source) || prop !== 'length')) {
-      desc.configurable = true;
+    let desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
+    if (desc && ctx.currentTarget === ctx.source) {
+      if (!Array.isArray(ctx.source) || prop !== 'length') {
+        desc.configurable = true;
+      }
       if (!desc.get && !desc.set) {
         desc.writable = true;
       }

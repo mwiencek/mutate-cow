@@ -201,19 +201,50 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
 
 { // defineProperty
 
-  const orig/*: {+foo?: number} */ = {};
+  const orig/*: {+foo?: number, bar?: number} */ = {};
 
-  const copy = mutate/*:: <{foo:? number}, _>*/(orig, (copy) => {
+  Object.defineProperty(orig, 'bar', {
+    configurable: false,
+    enumerable: true,
+    value: 0,
+    writable: false,
+  });
+
+  const copy = mutate/*:: <{foo?: number, bar?: number}, _>*/(orig, (copy) => {
+    let desc = Reflect.getOwnPropertyDescriptor(copy, 'bar');
+    // read-only properties are configurable and writable inside `mutate`
+    assert(desc && desc.configurable);
+    assert(desc && desc.writable);
+    copy.bar = 1;
+
+    // read-only properties defined inside `mutate` stay read-only
     Object.defineProperty(copy, 'foo', {
       configurable: false,
       enumerable: true,
       value: 1,
       writable: false,
     });
+
+    desc = Reflect.getOwnPropertyDescriptor(copy, 'foo');
+    let error;
+    try {
+      copy.foo = 2;
+    } catch (e) {
+      error = e;
+    }
+    PROXY_SUPPORT && assert(
+      error && error.message.includes('read only property'),
+    );
   });
 
   assert(!orig.hasOwnProperty('foo'));
+  assert(orig.bar === 0);
+  assert(copy.bar === 1);
+  assert(Reflect.getOwnPropertyDescriptor(copy, 'bar').configurable === false);
+  assert(Reflect.getOwnPropertyDescriptor(copy, 'bar').writable === false);
   assert(copy.foo === 1);
+  assert(Reflect.getOwnPropertyDescriptor(copy, 'foo').configurable === false);
+  assert(Reflect.getOwnPropertyDescriptor(copy, 'foo').writable === false);
 }
 
 { // array push
@@ -316,7 +347,13 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
   });
 
   const descArrayCopy = mutate/*:: <{value: Array<number>}, _>*/(descArray, (copy) => {
+    let desc = Object.getOwnPropertyDescriptor(copy.value, 'length');
+    assert(desc && desc.configurable === false);
+    assert(desc && desc.writable === true);
     copy.value[1] = 0;
+    desc = Object.getOwnPropertyDescriptor(copy.value, 'length');
+    assert(desc && desc.configurable === false);
+    assert(desc && desc.writable === true);
   });
 
   assert(descArray.value[1] === 2);
@@ -654,6 +691,11 @@ type Cyclic = {x: Cyclic}
   // target.
   const copy = mutate([0], copy => {
     Object.freeze(copy);
+
+    const desc = Object.getOwnPropertyDescriptor(copy, 'length');
+    assert(desc && !desc.configurable);
+    assert(desc && !desc.writable);
+
     let error;
     try {
       copy.error = true;
