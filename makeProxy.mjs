@@ -213,8 +213,9 @@ const handlers = {
 };
 
 function copyOwnPropertiesToFakeTarget(source, fakeTarget) {
-  for (const name of Object.getOwnPropertyNames(source)) {
-    Reflect.defineProperty(fakeTarget, name, CONFIGURABLE_AND_WRITABLE);
+  const ownNames = Object.getOwnPropertyNames(source);
+  for (let i = 0; i < ownNames.length; i++) {
+    Reflect.defineProperty(fakeTarget, ownNames[i], CONFIGURABLE_AND_WRITABLE);
   }
 }
 

@@ -14,7 +14,8 @@ import {
 } from './constants.mjs';
 
 function restoreDescriptors(copy, changedDescriptors) {
-  for (const [name, origDesc] of changedDescriptors) {
+  for (let i = 0; i < changedDescriptors.length; i++) {
+    const [name, origDesc] = changedDescriptors[i];
     const desc = Reflect.getOwnPropertyDescriptor(copy, name);
     if (desc) {
       Object.assign(desc, origDesc);
@@ -38,7 +39,9 @@ export default function clone(source, callbacks, recursive, seenValues) {
   if (recursive) {
     seenValues.add(source);
   }
-  for (let name of Object.getOwnPropertyNames(source)) {
+  const ownNames = Object.getOwnPropertyNames(source);
+  for (let i = 0; i < ownNames.length; i++) {
+    const name = ownNames[i];
     const desc = Reflect.getOwnPropertyDescriptor(source, name);
     const nonConfigurable = desc.configurable === false;
     let origDesc;
