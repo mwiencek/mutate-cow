@@ -21,7 +21,6 @@ export class Context {
     this.parent = parent;
     this.source = source;
     this.prop = prop;
-    this.callbacks = null;
     this.proxy = null;
     this.childProxy = null;
     this.copy = null;
@@ -61,7 +60,6 @@ export class Context {
     this.parent = null;
     this.source = null;
     this.prop = null;
-    this.callbacks = null;
     this.proxy = null;
     this.childProxy = null
     this.copy = null;
@@ -79,11 +77,11 @@ export class Context {
   }
 }
 
-export default function makeProxy(ctx) {
+export default function makeProxy(ctx, callbacks) {
   const source = ctx.source;
 
   ctx.copy = canClone(source)
-    ? clone(source, ctx.root.callbacks, false, null)
+    ? clone(source, callbacks, false, null)
     : null;
 
   const proxy = new Proxy(ctx.copy || source, {
@@ -152,7 +150,7 @@ export default function makeProxy(ctx) {
           ctx,
           value,
           prop,
-        ));
+        ), callbacks);
 
         ctx.childProxy[prop] = p;
         return p;
