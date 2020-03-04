@@ -12,7 +12,7 @@ export default function unwrap(value) {
   if (isObject(value)) {
     const valueCtx = PROXY_CONTEXT.get(value);
     if (valueCtx) {
-      return valueCtx.currentTarget;
+      return valueCtx.changed ? valueCtx.copy : valueCtx.source;
     }
   }
   return value;

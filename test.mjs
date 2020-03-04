@@ -290,12 +290,12 @@ if (PROXY_SUPPORT) { // objects are copied only once
     const proxy1 = copy[0].death_date;
     proxy1.year = 5000;
     assert(proxy1 === copy[0].death_date); // proxy is unchanged
-    const ref1 = PROXY_CONTEXT.get(proxy1).currentTarget;
+    const ref1 = PROXY_CONTEXT.get(proxy1).copy;
     assert(people[0].death_date !== ref1); // reference was copied
     assert(people[0].death_date.year === 2330);
     assert(proxy1.year === 5000);
     proxy1.year  = 4000;
-    const ref2 = PROXY_CONTEXT.get(copy[0].death_date).currentTarget;
+    const ref2 = PROXY_CONTEXT.get(copy[0].death_date).copy;
     assert(ref1 === ref2); // reference was copied only once
     assert(ref1.year === 4000);
     proxy1.year = 3000;
@@ -387,7 +387,7 @@ if (PROXY_SUPPORT) { // shared reference within one object
     copy.prop2.foo = '123';
     assert(copy.prop1.foo === 'abc');
     assert(copy.prop2.foo === '123');
-    assert(PROXY_CONTEXT.get(copy.prop1).currentTarget === PROXY_CONTEXT.get(ref).currentTarget); // copied only once
+    assert(PROXY_CONTEXT.get(copy.prop1).copy === PROXY_CONTEXT.get(ref).copy); // copied only once
     assert(shared.foo === '');
   });
 
@@ -486,16 +486,21 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
 { // functions
 
-  const origFunc = () => 'abc';
-
-  const orig/*: {|+func: () => string|} */ = {
-    func: origFunc,
+  const origFunc = function () {
+    return this.value;
   };
 
-  const copy = mutate/*:: <{func: (() => string) & {prop?: boolean}}, _>*/(orig, (copy) => {
+  const orig/*: {|+func: () => string, +value: string|} */ = {
+    func: origFunc,
+    value: 'abc',
+  };
+
+  const copy = mutate/*:: <{func: (() => string) & {prop?: boolean}, value: string}, _>*/(orig, (copy) => {
     assert(typeof copy.func === 'function');
     assert(copy.func instanceof Function);
     assert(copy.func() === 'abc');
+    copy.value = '123';
+    assert(copy.func() === '123');
 
     let error;
     try {

@@ -5,8 +5,12 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
+import canClone from './canClone.mjs';
 import clone from './clone.mjs';
-import {PROXY_SUPPORT} from './constants.mjs';
+import {
+  CANNOT_CLONE_ERROR,
+  PROXY_SUPPORT,
+} from './constants.mjs';
 import isObject from './isObject.mjs';
 import restoreEqual from './restoreEqual.mjs';
 import makeProxy, {Context} from './makeProxy.mjs';
@@ -27,13 +31,15 @@ export default function mutate(source, updater) {
       source,
       null,
     );
-    ctx.root = ctx;
     ctx.callbacks = callbacks;
     updater(makeProxy(ctx), unwrap);
-    copy = ctx.currentTarget;
+    copy = ctx.changed ? ctx.copy : ctx.source;
     ctx.revoke();
   } else {
     // Slow path for IE and other environments without Proxy
+    if (!canClone(source)) {
+      throw new Error(CANNOT_CLONE_ERROR);
+    }
     copy = clone(source, callbacks, true, new Set());
     updater(copy, unwrap);
     copy = restoreEqual(source, copy);

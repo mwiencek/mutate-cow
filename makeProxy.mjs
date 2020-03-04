@@ -7,7 +7,11 @@
 
 import canClone from './canClone.mjs';
 import clone from './clone.mjs';
-import {CONFIGURABLE_AND_WRITABLE, PROXY_CONTEXT} from './constants.mjs';
+import {
+  CANNOT_CLONE_ERROR,
+  CONFIGURABLE_AND_WRITABLE,
+  PROXY_CONTEXT,
+} from './constants.mjs';
 import isObject from './isObject.mjs';
 import unwrap from './unwrap.mjs';
 
@@ -15,40 +19,39 @@ const contextMap = new WeakMap();
 
 export class Context {
   constructor(root, parent, source, prop) {
-    this.root = root;
+    this.root = root || this;
     this.parent = parent;
     this.source = source;
     this.prop = prop;
     this.callbacks = null;
     this.proxy = null;
     this.childProxy = null;
-    this.currentTarget = source;
+    this.copy = null;
     this.isRevoked = false;
+    this.changed = false;
   }
 
   copyForWrite() {
-    if (this.currentTarget !== this.source ||
+    if (this.changed ||
         this.isRevoked ||
         this.root.isRevoked) {
       return;
     }
     const stack = [];
     let parent = this;
-    while (parent && parent.source === parent.currentTarget) {
+    while (parent && !parent.changed) {
       stack.push(parent);
       parent = parent.parent;
     }
     for (let i = stack.length - 1; i >= 0; i--) {
-      let ctx = stack[i];
-      ctx.currentTarget = clone(
-        ctx.source,
-        ctx.root.callbacks,
-        false,
-        null,
-      );
-      if (ctx.prop) {
-        ctx.parent.currentTarget[ctx.prop] = ctx.currentTarget;
+      const ctx = stack[i];
+      if (!ctx.copy) {
+        throw new Error(CANNOT_CLONE_ERROR);
       }
+      if (ctx.prop) {
+        ctx.parent.copy[ctx.prop] = ctx.copy;
+      }
+      ctx.changed = true;
     }
   }
 
@@ -63,7 +66,7 @@ export class Context {
     this.callbacks = null;
     this.proxy = null;
     this.childProxy = null
-    this.currentTarget = null;
+    this.copy = null;
     this.isRevoked = true;
   }
 
@@ -79,42 +82,38 @@ export class Context {
 }
 
 const handlers = {
-  apply: function (fakeTarget, thisArg, argumentsList) {
-    const ctx = contextMap.get(fakeTarget);
+  apply: function (target, thisArg, argumentsList) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
     return Reflect.apply(ctx.source, thisArg, argumentsList);
   },
 
-  construct: function (fakeTarget, args) {
-    const ctx = contextMap.get(fakeTarget);
+  construct: function (target, args) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
     return new ctx.source(...args);
   },
 
   // Since a `set` handler is defined, this should only be called
   // when `defineProperty` is called directly?
-  defineProperty: function (fakeTarget, prop, desc) {
-    const ctx = contextMap.get(fakeTarget);
+  defineProperty: function (target, prop, desc) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
     ctx.copyForWrite();
-    // Non-configurable properties must exist on the proxy target.
-    if (desc.configurable === false) {
-      Reflect.defineProperty(fakeTarget, prop, desc);
-    }
-    return Reflect.defineProperty(ctx.currentTarget, prop, desc);
+    return Reflect.defineProperty(ctx.copy, prop, desc);
   },
 
-  deleteProperty: function (fakeTarget, prop) {
-    const ctx = contextMap.get(fakeTarget);
+  deleteProperty: function (target, prop) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
     ctx.copyForWrite();
-    return Reflect.deleteProperty(ctx.currentTarget, prop);
+    return Reflect.deleteProperty(ctx.copy, prop);
   },
 
-  get: function (fakeTarget, prop) {
-    const ctx = contextMap.get(fakeTarget);
+  get: function (target, prop) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
-    const desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
+    const desc = Reflect.getOwnPropertyDescriptor(target, prop);
     let value;
 
     if (desc) {
@@ -131,7 +130,7 @@ const handlers = {
           'the original object instead.',
         );
       }
-      return Reflect.get(ctx.currentTarget, prop);
+      return Reflect.get(target, prop);
     }
 
     if (isObject(value)) {
@@ -157,52 +156,37 @@ const handlers = {
     return value;
   },
 
-  getOwnPropertyDescriptor: function (fakeTarget, prop) {
-    const ctx = contextMap.get(fakeTarget);
+  getOwnPropertyDescriptor: function (target, prop) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
-    let desc = Reflect.getOwnPropertyDescriptor(ctx.currentTarget, prop);
-    if (desc && ctx.currentTarget === ctx.source) {
-      if (!Array.isArray(ctx.source) || prop !== 'length') {
-        desc.configurable = true;
-      }
-      if (!desc.get && !desc.set) {
-        desc.writable = true;
-      }
-    }
-    return desc;
+    return Reflect.getOwnPropertyDescriptor(target, prop);
   },
 
-  has: function (fakeTarget, prop) {
-    const ctx = contextMap.get(fakeTarget);
+  has: function (target, prop) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
-    return Reflect.has(ctx.currentTarget, prop);
+    return Reflect.has(target, prop);
   },
 
-  ownKeys: function (fakeTarget) {
-    const ctx = contextMap.get(fakeTarget);
+  ownKeys: function (target) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
-    return Reflect.ownKeys(ctx.currentTarget);
+    return Reflect.ownKeys(target);
   },
 
-  preventExtensions: function (fakeTarget) {
-    const ctx = contextMap.get(fakeTarget);
+  preventExtensions: function (target) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
     ctx.copyForWrite();
-    // If the target object is not extensible, then the result of `ownKeys`
-    // must contain all the keys of the own properties of the target object
-    // and no other values. See section 9.5.11 of
-    // https://www.ecma-international.org/ecma-262/8.0/
-    copyOwnPropertiesToFakeTarget(ctx.currentTarget, fakeTarget);
-    Reflect.preventExtensions(fakeTarget);
-    Reflect.preventExtensions(ctx.currentTarget);
+    Reflect.preventExtensions(ctx.copy);
     return true;
   },
 
-  set: function (fakeTarget, prop, value) {
-    const ctx = contextMap.get(fakeTarget);
+  set: function (target, prop, value) {
+    const ctx = contextMap.get(target);
     ctx.throwIfRevoked();
     ctx.copyForWrite();
-    ctx.currentTarget[prop] = unwrap(value);
+    ctx.copy[prop] = unwrap(value);
     // This must be deleted, because it can now refer to an outdated
     // value (i.e. a previous copy we made).
     if (ctx.childProxy) {
@@ -212,29 +196,18 @@ const handlers = {
   },
 };
 
-function copyOwnPropertiesToFakeTarget(source, fakeTarget) {
-  const ownNames = Object.getOwnPropertyNames(source);
-  for (let i = 0; i < ownNames.length; i++) {
-    Reflect.defineProperty(fakeTarget, ownNames[i], CONFIGURABLE_AND_WRITABLE);
-  }
-}
-
 export default function makeProxy(ctx) {
   const source = ctx.source;
 
-  // Using a fake proxy target avoids having to deal with proxy
-  // invariants. See section 9.5.8 of
-  // https://www.ecma-international.org/ecma-262/8.0/
-  const fakeTarget = typeof source === 'function'
-    ? (new Function())
-    : (Array.isArray(source)
-        ? []
-        : Object.create(Reflect.getPrototypeOf(source)));
+  ctx.copy = canClone(source)
+    ? clone(source, ctx.root.callbacks, false, null)
+    : null;
 
-  const proxy = new Proxy(fakeTarget, handlers);
+  const proxyTarget = ctx.copy || source;
+  const proxy = new Proxy(proxyTarget, handlers);
   PROXY_CONTEXT.set(proxy, ctx);
   ctx.proxy = proxy;
-  contextMap.set(fakeTarget, ctx);
+  contextMap.set(proxyTarget, ctx);
 
   return proxy;
 }

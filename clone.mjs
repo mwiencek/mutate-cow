@@ -30,11 +30,7 @@ export default function clone(source, callbacks, recursive, seenValues) {
   if (Array.isArray(source)) {
     copy = new Array(source.length);
   } else {
-    if (canClone(source)) {
-      copy = Object.create(Reflect.getPrototypeOf(source));
-    } else {
-      throw new Error('Cloning built-in non-Array or non-Object objects is unsupported.');
-    }
+    copy = Object.create(Reflect.getPrototypeOf(source));
   }
   if (recursive) {
     seenValues.add(source);
