@@ -33,7 +33,7 @@ export default function clone(source, callbacks, recursive, seenValues) {
     copy = Object.create(Reflect.getPrototypeOf(source));
   }
   if (recursive) {
-    seenValues.add(source);
+    seenValues.push(source);
   }
   const ownNames = Object.getOwnPropertyNames(source);
   for (let i = 0; i < ownNames.length; i++) {
@@ -60,7 +60,7 @@ export default function clone(source, callbacks, recursive, seenValues) {
     if (recursive && canClone(desc.value)) {
       // We could return the previously cloned value here, but that
       // isn't how the proxy implementation behaves.
-      if (seenValues.has(desc.value)) {
+      if (seenValues.indexOf(desc.value) >= 0) {
         throw new Error('Unexpected cyclic or shared reference');
       }
       desc.value = clone(desc.value, callbacks, true, seenValues);

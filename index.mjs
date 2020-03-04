@@ -40,7 +40,7 @@ export default function mutate(source, updater) {
     if (!canClone(source)) {
       throw new Error(CANNOT_CLONE_ERROR);
     }
-    copy = clone(source, callbacks, true, new Set());
+    copy = clone(source, callbacks, true, []);
     updater(copy, unwrap);
     copy = restoreEqual(source, copy);
   }
