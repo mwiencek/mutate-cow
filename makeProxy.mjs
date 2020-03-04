@@ -79,11 +79,6 @@ export default function makeProxy(ctx, source, callbacks) {
   const childProxies = Object.create(null);
 
   const proxy = new Proxy(ctx.copy || source, {
-    apply: function (target, thisArg, argumentsList) {
-      ctx.throwIfRevoked();
-      return Reflect.apply(source, thisArg, argumentsList);
-    },
-
     construct: function (target, args) {
       ctx.throwIfRevoked();
       return new source(...args);
@@ -139,21 +134,6 @@ export default function makeProxy(ctx, source, callbacks) {
         );
       }
       return value;
-    },
-
-    getOwnPropertyDescriptor: function (target, prop) {
-      ctx.throwIfRevoked();
-      return Reflect.getOwnPropertyDescriptor(target, prop);
-    },
-
-    has: function (target, prop) {
-      ctx.throwIfRevoked();
-      return Reflect.has(target, prop);
-    },
-
-    ownKeys: function (target) {
-      ctx.throwIfRevoked();
-      return Reflect.ownKeys(target);
     },
 
     preventExtensions: function (target) {
