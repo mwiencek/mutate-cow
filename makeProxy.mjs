@@ -15,61 +15,59 @@ import {
 import isObject from './isObject.mjs';
 import unwrap from './unwrap.mjs';
 
-export class Context {
-  constructor(root, parent, prop) {
-    this.root = root || this;
-    this.parent = parent;
-    this.prop = prop;
-    this.copy = null;
-    this.isRevoked = false;
-    this.changed = false;
-  }
-
-  copyForWrite() {
-    if (this.changed ||
-        this.isRevoked ||
-        this.root.isRevoked) {
-      return;
-    }
-    const stack = [];
-    let parent = this;
-    while (parent && !parent.changed) {
-      stack.push(parent);
-      parent = parent.parent;
-    }
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const ctx = stack[i];
-      if (!ctx.copy) {
-        throw new Error(CANNOT_CLONE_ERROR);
-      }
-      if (ctx.prop) {
-        ctx.parent.copy[ctx.prop] = ctx.copy;
-      }
-      ctx.changed = true;
-    }
-  }
-
-  revoke() {
-    if (this.isRevoked) {
-      return;
-    }
-    this.root = null;
-    this.parent = null;
-    this.prop = null;
-    this.copy = null;
-    this.isRevoked = true;
-  }
-
-  throwIfRevoked() {
-    if (this.root.isRevoked) {
-      this.revoke();
-      throw new Error(
-        'This Proxy can no longer be accessed. ' +
-        'You may have forgotten to call unwrap() on an assigned value.',
-      );
-    }
-  }
+export function Context(root, parent, prop) {
+  this.root = root || this;
+  this.parent = parent;
+  this.prop = prop;
+  this.copy = null;
+  this.isRevoked = false;
+  this.changed = false;
 }
+
+Context.prototype.copyForWrite = function () {
+  if (this.changed ||
+      this.isRevoked ||
+      this.root.isRevoked) {
+    return;
+  }
+  const stack = [];
+  let parent = this;
+  while (parent && !parent.changed) {
+    stack.push(parent);
+    parent = parent.parent;
+  }
+  for (let i = stack.length - 1; i >= 0; i--) {
+    const ctx = stack[i];
+    if (!ctx.copy) {
+      throw new Error(CANNOT_CLONE_ERROR);
+    }
+    if (ctx.prop) {
+      ctx.parent.copy[ctx.prop] = ctx.copy;
+    }
+    ctx.changed = true;
+  }
+};
+
+Context.prototype.revoke = function () {
+  if (this.isRevoked) {
+    return;
+  }
+  this.root = null;
+  this.parent = null;
+  this.prop = null;
+  this.copy = null;
+  this.isRevoked = true;
+};
+
+Context.prototype.throwIfRevoked = function () {
+  if (this.root.isRevoked) {
+    this.revoke();
+    throw new Error(
+      'This Proxy can no longer be accessed. ' +
+      'You may have forgotten to call unwrap() on an assigned value.',
+    );
+  }
+};
 
 export default function makeProxy(ctx, source, callbacks) {
   ctx.copy = canClone(source)
