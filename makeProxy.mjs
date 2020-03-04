@@ -22,7 +22,6 @@ export class Context {
     this.source = source;
     this.prop = prop;
     this.proxy = null;
-    this.childProxy = null;
     this.copy = null;
     this.isRevoked = false;
     this.changed = false;
@@ -61,7 +60,6 @@ export class Context {
     this.source = null;
     this.prop = null;
     this.proxy = null;
-    this.childProxy = null
     this.copy = null;
     this.isRevoked = true;
   }
@@ -83,6 +81,8 @@ export default function makeProxy(ctx, callbacks) {
   ctx.copy = canClone(source)
     ? clone(source, callbacks, false, null)
     : null;
+
+  const childProxies = Object.create(null);
 
   const proxy = new Proxy(ctx.copy || source, {
     apply: function (target, thisArg, argumentsList) {
@@ -136,24 +136,14 @@ export default function makeProxy(ctx, callbacks) {
       }
 
       if (isObject(value)) {
-        if (!ctx.childProxy) {
-          ctx.childProxy = Object.create(null);
-        }
-
-        let p = ctx.childProxy[prop];
-        if (p) {
-          return p;
-        }
-
-        p = makeProxy(new Context(
-          ctx.root,
-          ctx,
-          value,
-          prop,
-        ), callbacks);
-
-        ctx.childProxy[prop] = p;
-        return p;
+        return childProxies[prop] || (
+          childProxies[prop] = makeProxy(new Context(
+            ctx.root,
+            ctx,
+            value,
+            prop,
+          ), callbacks)
+        );
       }
       return value;
     },
@@ -186,9 +176,7 @@ export default function makeProxy(ctx, callbacks) {
       ctx.copy[prop] = unwrap(value);
       // This must be deleted, because it can now refer to an outdated
       // value (i.e. a previous copy we made).
-      if (ctx.childProxy) {
-        delete ctx.childProxy[prop];
-      }
+      delete childProxies[prop];
       return true;
     },
   });
