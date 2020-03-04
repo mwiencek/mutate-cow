@@ -16,10 +16,9 @@ import isObject from './isObject.mjs';
 import unwrap from './unwrap.mjs';
 
 export class Context {
-  constructor(root, parent, source, prop) {
+  constructor(root, parent, prop) {
     this.root = root || this;
     this.parent = parent;
-    this.source = source;
     this.prop = prop;
     this.copy = null;
     this.isRevoked = false;
@@ -56,7 +55,6 @@ export class Context {
     }
     this.root = null;
     this.parent = null;
-    this.source = null;
     this.prop = null;
     this.copy = null;
     this.isRevoked = true;
@@ -73,9 +71,7 @@ export class Context {
   }
 }
 
-export default function makeProxy(ctx, callbacks) {
-  const source = ctx.source;
-
+export default function makeProxy(ctx, source, callbacks) {
   ctx.copy = canClone(source)
     ? clone(source, callbacks, false, null)
     : null;
@@ -85,12 +81,12 @@ export default function makeProxy(ctx, callbacks) {
   const proxy = new Proxy(ctx.copy || source, {
     apply: function (target, thisArg, argumentsList) {
       ctx.throwIfRevoked();
-      return Reflect.apply(ctx.source, thisArg, argumentsList);
+      return Reflect.apply(source, thisArg, argumentsList);
     },
 
     construct: function (target, args) {
       ctx.throwIfRevoked();
-      return new ctx.source(...args);
+      return new source(...args);
     },
 
     // Since a `set` handler is defined, this should only be called
@@ -109,7 +105,7 @@ export default function makeProxy(ctx, callbacks) {
 
     get: function (target, prop) {
       if (prop === PROXY_UNWRAP_KEY) {
-        return ctx.changed ? ctx.copy : ctx.source;
+        return ctx.changed ? ctx.copy : source;
       }
 
       ctx.throwIfRevoked();
@@ -122,7 +118,7 @@ export default function makeProxy(ctx, callbacks) {
         }
         value = desc.value;
       } else {
-        if (!canClone(ctx.source)) {
+        if (!canClone(source)) {
           throw new Error(
             'Accessing properties and methods through built-in ' +
             'non-Array or non-Object objects is unsupported. ' +
@@ -138,9 +134,8 @@ export default function makeProxy(ctx, callbacks) {
           childProxies[prop] = makeProxy(new Context(
             ctx.root,
             ctx,
-            value,
             prop,
-          ), callbacks)
+          ), value, callbacks)
         );
       }
       return value;

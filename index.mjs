@@ -29,10 +29,9 @@ export default function mutate(source, updater) {
     const ctx = new Context(
       null,
       null,
-      source,
       null,
     );
-    const proxy = makeProxy(ctx, callbacks);
+    const proxy = makeProxy(ctx, source, callbacks);
     updater(proxy, unwrap);
     copy = proxy[PROXY_UNWRAP_KEY];
     ctx.revoke();
