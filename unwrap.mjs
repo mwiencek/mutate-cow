@@ -5,14 +5,14 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import {PROXY_CONTEXT} from './constants.mjs';
+import {PROXY_UNWRAP_KEY} from './constants.mjs';
 import isObject from './isObject.mjs';
 
 export default function unwrap(value) {
   if (isObject(value)) {
-    const valueCtx = PROXY_CONTEXT.get(value);
-    if (valueCtx) {
-      return valueCtx.changed ? valueCtx.copy : valueCtx.source;
+    const result = value[PROXY_UNWRAP_KEY];
+    if (result) {
+      return result;
     }
   }
   return value;

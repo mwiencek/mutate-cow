@@ -12,7 +12,7 @@ export const noProxy = (cb) => {
   PROXY_SUPPORT = oldValue;
 };
 
-export const PROXY_CONTEXT = new WeakMap();
+export const PROXY_UNWRAP_KEY = '__SECRET_UNWRAP_KEY__';
 
 export const NON_CONFIGURABLE = Object.freeze({configurable: false});
 

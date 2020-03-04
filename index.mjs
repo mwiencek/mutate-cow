@@ -10,6 +10,7 @@ import clone from './clone.mjs';
 import {
   CANNOT_CLONE_ERROR,
   PROXY_SUPPORT,
+  PROXY_UNWRAP_KEY,
 } from './constants.mjs';
 import isObject from './isObject.mjs';
 import restoreEqual from './restoreEqual.mjs';
@@ -32,8 +33,9 @@ export default function mutate(source, updater) {
       null,
     );
     ctx.callbacks = callbacks;
-    updater(makeProxy(ctx), unwrap);
-    copy = ctx.changed ? ctx.copy : ctx.source;
+    const proxy = makeProxy(ctx);
+    updater(proxy, unwrap);
+    copy = proxy[PROXY_UNWRAP_KEY];
     ctx.revoke();
   } else {
     // Slow path for IE and other environments without Proxy
