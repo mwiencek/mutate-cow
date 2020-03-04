@@ -21,7 +21,6 @@ export class Context {
     this.parent = parent;
     this.source = source;
     this.prop = prop;
-    this.proxy = null;
     this.copy = null;
     this.isRevoked = false;
     this.changed = false;
@@ -59,7 +58,6 @@ export class Context {
     this.parent = null;
     this.source = null;
     this.prop = null;
-    this.proxy = null;
     this.copy = null;
     this.isRevoked = true;
   }
@@ -120,7 +118,7 @@ export default function makeProxy(ctx, callbacks) {
 
       if (desc) {
         if (desc.get) {
-          return desc.get.call(ctx.proxy, prop);
+          return desc.get.call(proxy, prop);
         }
         value = desc.value;
       } else {
@@ -180,8 +178,6 @@ export default function makeProxy(ctx, callbacks) {
       return true;
     },
   });
-
-  ctx.proxy = proxy;
 
   return proxy;
 }
