@@ -714,3 +714,16 @@ type Cyclic = {x: Cyclic}
   });
   assert(Object.isExtensible(copy) === false);
 }
+
+{ // Assigning an externally-frozen object inside the proxy
+
+  const source = {ref: null};
+  const frozenRef = {name: ''};
+  Object.freeze(frozenRef);
+
+  const copy = mutate/*:: <{ref: {name: string}}, _>*/(source, copy => {
+    copy.ref = frozenRef;
+    copy.ref.name = 'hi';
+  });
+  assert(copy.ref && copy.ref.name === 'hi');
+}
