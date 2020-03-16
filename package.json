@@ -18,7 +18,7 @@
     "@babel/plugin-transform-runtime": ">=7",
     "@babel/preset-env": ">=7",
     "benchmark": "2.1.4",
-    "flow-bin": "0.119.1"
+    "flow-bin": "0.120.1"
   },
   "sideEffects": false,
   "scripts": {
