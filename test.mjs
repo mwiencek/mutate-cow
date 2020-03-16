@@ -421,6 +421,25 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
   assert(objectACopy.foo.foo[0] === 2);
 }
 
+{ // nested call on proxied object
+
+  const source/*: {+foo: {+bar: number}} */ = {foo: {bar: 0}};
+
+  const copy = mutate/*:: <{foo: {bar: number}}, _>*/(source, copy => {
+    copy.foo.bar++;
+
+    copy.foo = mutate/*:: <{bar: number}, _>*/(copy.foo, fooCopy => {
+      copy.foo.bar++; // overridden
+      fooCopy.bar++;
+      copy.foo.bar++; // overridden
+    });
+
+    copy.foo.bar++;
+  });
+
+  assert(copy.foo.bar === 3);
+}
+
 { // classes
 
   class NiceBase {}

@@ -31,7 +31,11 @@ export default function mutate(source, updater) {
       null,
       null,
     );
-    const proxy = makeProxy(ctx, source, callbacks);
+    const proxy = makeProxy(
+      ctx,
+      source[PROXY_UNWRAP_KEY] || source,
+      callbacks,
+    );
     updater(proxy, unwrap);
     copy = proxy[PROXY_UNWRAP_KEY];
     ctx.revoke();
