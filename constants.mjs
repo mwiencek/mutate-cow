@@ -30,3 +30,9 @@ export const CONFIGURABLE_AND_WRITABLE = Object.freeze({
 
 export const CANNOT_CLONE_ERROR =
   'Cloning built-in non-Array or non-Object objects is unsupported.';
+
+export const STATUS_NONE = 1;
+
+export const STATUS_CHANGED = 2;
+
+export const STATUS_REVOKED = 3;

@@ -11,6 +11,9 @@ import {
   CANNOT_CLONE_ERROR,
   CONFIGURABLE_AND_WRITABLE,
   PROXY_UNWRAP_KEY,
+  STATUS_CHANGED,
+  STATUS_NONE,
+  STATUS_REVOKED,
 } from './constants.mjs';
 import isObject from './isObject.mjs';
 import unwrap from './unwrap.mjs';
@@ -20,19 +23,19 @@ export function Context(root, parent, prop) {
   this.parent = parent;
   this.prop = prop;
   this.copy = null;
-  this.isRevoked = false;
-  this.changed = false;
+  this.status = STATUS_NONE;
 }
 
 Context.prototype.copyForWrite = function () {
-  if (this.changed ||
-      this.isRevoked ||
-      this.root.isRevoked) {
+  const status = this.status;
+  if (status === STATUS_CHANGED ||
+      status === STATUS_REVOKED ||
+      this.root.status === STATUS_REVOKED) {
     return;
   }
   const stack = [];
   let parent = this;
-  while (parent && !parent.changed) {
+  while (parent && parent.status !== STATUS_CHANGED) {
     stack.push(parent);
     parent = parent.parent;
   }
@@ -44,23 +47,23 @@ Context.prototype.copyForWrite = function () {
     if (ctx.prop) {
       ctx.parent.copy[ctx.prop] = ctx.copy;
     }
-    ctx.changed = true;
+    ctx.status = STATUS_CHANGED;
   }
 };
 
 Context.prototype.revoke = function () {
-  if (this.isRevoked) {
+  if (this.status === STATUS_REVOKED) {
     return;
   }
   this.root = null;
   this.parent = null;
   this.prop = null;
   this.copy = null;
-  this.isRevoked = true;
+  this.status = STATUS_REVOKED;
 };
 
 Context.prototype.throwIfRevoked = function () {
-  if (this.root.isRevoked) {
+  if (this.root.status === STATUS_REVOKED) {
     this.revoke();
     throw new Error(
       'This Proxy can no longer be accessed. ' +
@@ -98,7 +101,7 @@ export default function makeProxy(ctx, source, callbacks) {
 
     get: function (target, prop) {
       if (prop === PROXY_UNWRAP_KEY) {
-        return ctx.changed ? ctx.copy : source;
+        return ctx.status === STATUS_CHANGED ? ctx.copy : source;
       }
 
       ctx.throwIfRevoked();
