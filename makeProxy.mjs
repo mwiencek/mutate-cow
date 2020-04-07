@@ -146,11 +146,18 @@ export default function makeProxy(ctx, source, callbacks) {
 
     set: function (target, prop, value) {
       ctx.throwIfRevoked();
-      ctx.copyForWrite();
-      ctx.copy[prop] = unwrap(value);
-      // This must be deleted, because it can now refer to an outdated
-      // value (i.e. a previous copy we made).
-      delete childProxies[prop];
+
+      const origValue = Reflect.get(target, prop);
+      const newValue = unwrap(value);
+
+      if (!Object.is(origValue, newValue)) {
+        ctx.copyForWrite();
+        ctx.copy[prop] = newValue;
+        // This must be deleted, because it can now refer to an outdated
+        // value (i.e. a previous copy we made).
+        delete childProxies[prop];
+      }
+
       return true;
     },
   });

@@ -141,6 +141,23 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
   assert(people[1].death_date === copy[1].death_date);
 }
 
+{ // object not copied if assignments don't change the underlying data
+
+  const copy = mutate/*:: <People, _>*/(people, (copy) => {
+    copy[0] = copy[0];
+    copy[0].birth_date = copy[0].birth_date;
+    copy[0].birth_date.year = copy[0].birth_date.year;
+    copy[0].birth_date.year = 2100;
+  });
+
+  assert(people === copy);
+  assert(people[0] === copy[0]);
+  assert(people[1] === copy[1]);
+  assert(people[0].birth_date === copy[0].birth_date);
+  assert(people[1].death_date === copy[1].death_date);
+  assert(copy[0].birth_date.year === 2100);
+}
+
 { // object delete
 
   const orig = {};
