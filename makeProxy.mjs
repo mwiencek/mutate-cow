@@ -63,8 +63,12 @@ Context.prototype.revoke = function () {
 };
 
 Context.prototype.throwIfRevoked = function () {
-  if (this.root.status === STATUS_REVOKED) {
+  let revoked = this.status === STATUS_REVOKED;
+  if (!revoked && this.root && this.root.status === STATUS_REVOKED) {
     this.revoke();
+    revoked = true;
+  }
+  if (revoked) {
     throw new Error(
       'This Proxy can no longer be accessed. ' +
       'You may have forgotten to call unwrap() on an assigned value.',

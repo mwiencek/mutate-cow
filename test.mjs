@@ -696,6 +696,14 @@ type Cyclic = {x: Cyclic}
   }
   PROXY_SUPPORT && assert(error && error.message.includes('forgotten to call unwrap'));
 
+  // Check that the error can trigger twice
+  try {
+    copy.foo.bar.baz;
+  } catch (e) {
+    error = e;
+  }
+  PROXY_SUPPORT && assert(error && error.message.includes('forgotten to call unwrap'));
+
   copy = mutate/*:: <any, _>*/(orig, (copy, unwrap) => {
     copy.foo = {...unwrap(copy.foo)};
     assert(copy.foo.func() === copy.foo);
