@@ -9,7 +9,7 @@ import {
   NON_CONFIGURABLE,
   NON_CONFIGURABLE_AND_WRITABLE,
   NON_WRITABLE,
-} from './constants.mjs';
+} from './constants';
 
 function restoreDescriptors(copy, changedDescriptors) {
   for (let i = 0; i < changedDescriptors.length; i++) {

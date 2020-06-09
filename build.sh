@@ -3,15 +3,13 @@
 mkdir -p dist/orig
 
 cp LICENSE README.md package.json dist/
-cp index.mjs.flow dist/index.js.flow
-cp index.mjs.flow dist/orig/
+cp main.js.flow dist/main.js.flow
+cp main.js.flow dist/orig/
 
-for mjs in *.mjs; do
-  if [[ "$mjs" = "test.mjs" || "$mjs" = "bench.mjs" ]]; then
+for js in *.js; do
+  if [[ "$js" = "test.js" || "$js" = "bench.js" ]]; then
     continue
   fi
-  js="dist/${mjs%.*}.js"
-  ./node_modules/.bin/babel "$mjs" > "$js"
-  sed -i '' 's/\.mjs//g' "$js"
-  cp "$mjs" dist/orig/
+  ./node_modules/.bin/babel "$js" > "dist/$js"
+  cp "$js" dist/orig/
 done

@@ -8,10 +8,10 @@
 import {
   CANNOT_CLONE_ERROR,
   PROXY_UNWRAP_KEY,
-} from './constants.mjs';
-import isObject from './isObject.mjs';
-import makeProxy, {Context} from './makeProxy.mjs';
-import unwrap from './unwrap.mjs';
+} from './constants';
+import isObject from './isObject';
+import makeProxy, {Context} from './makeProxy';
+import unwrap from './unwrap';
 
 export default function mutate(source, updater) {
   if (!isObject(source)) {

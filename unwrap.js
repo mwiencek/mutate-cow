@@ -5,8 +5,8 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import {PROXY_UNWRAP_KEY} from './constants.mjs';
-import isObject from './isObject.mjs';
+import {PROXY_UNWRAP_KEY} from './constants';
+import isObject from './isObject';
 
 export default function unwrap(value) {
   if (isObject(value)) {
