@@ -7,11 +7,7 @@
  */
 
 import mutate from './index.mjs';
-import {
-  PROXY_SUPPORT,
-  PROXY_UNWRAP_KEY,
-  noProxy,
-} from './constants.mjs';
+import {PROXY_UNWRAP_KEY} from './constants.mjs';
 
 function assert(truth, message) {
   if (!truth) {
@@ -209,7 +205,7 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
     assert(copy.foo.bar === 3);
     copy.foo.bar = 4;
     assert(copy.foo.bar === 4);
-    PROXY_SUPPORT && assert(bar3.bar === 3);
+    assert(bar3.bar === 3);
   });
 
   assert(orig.foo.bar === 1);
@@ -249,9 +245,7 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
     } catch (e) {
       error = e;
     }
-    PROXY_SUPPORT && assert(
-      error && error.message.includes('read only property'),
-    );
+    assert(error && error.message.includes('read only property'));
   });
 
   assert(!orig.hasOwnProperty('foo'));
@@ -298,10 +292,10 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
   assert(copy !== people);
   assert(people.length === 2);
   assert(copy.length === 1);
-  PROXY_SUPPORT && assert(copy[0] === frozenBob);
+  assert(copy[0] === frozenBob);
 }
 
-if (PROXY_SUPPORT) { // objects are copied only once
+{ // objects are copied only once
 
   const copy = mutate/*:: <People, _>*/(people, (copy) => {
     const proxy1 = copy[0].death_date;
@@ -386,7 +380,7 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
 type SharedFoo = {foo: string};
 */
 
-if (PROXY_SUPPORT) { // shared reference within one object
+{ // shared reference within one object
 
   const shared/*: $ReadOnly<SharedFoo> */ = {foo: ''};
 
@@ -509,7 +503,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     // This should copy newObject; otherwise we'd be able to have
     // side-effects across multiple objects.
     copy.value.foo = 2;
-    PROXY_SUPPORT && assert(newObject.foo === 0);
+    assert(newObject.foo === 0);
   });
 
   assert(orig.value.foo === undefined);
@@ -546,7 +540,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     }
 
     // Can't clone functions, so the above should error.
-    PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
+    assert(error && error.message.includes('unsupported'));
 
     copy.func = () => '';
     assert(copy.func() === '');
@@ -597,7 +591,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     } catch (e) {
       error = e;
     }
-    PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
+    assert(error && error.message.includes('unsupported'));
 
     copy.num = new Number(orig.num.valueOf() + 2);
 
@@ -607,7 +601,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     } catch (e) {
       error = e;
     }
-    PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
+    assert(error && error.message.includes('unsupported'));
   });
 
   assert(orig.num.valueOf() === 1);
@@ -620,7 +614,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
   let error = null;
   try { mutate(null, () => {}) } catch (e) { error = e }
-  PROXY_SUPPORT && assert(error && error.message === 'Expected an object to mutate');
+  assert(error && error.message === 'Expected an object to mutate');
 }
 
 { // derived built-ins
@@ -635,7 +629,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
   } catch (e) {
     error = e;
   }
-  PROXY_SUPPORT && assert(error && error.message.includes('unsupported'));
+  assert(error && error.message.includes('unsupported'));
 }
 
 /*::
@@ -647,28 +641,12 @@ type Cyclic = {x: Cyclic}
   const object/*: Cyclic */ = {};
   object.x = object;
 
-  if (PROXY_SUPPORT) {
-    const newObject = mutate(object, newObject => {
-      newObject.x.x = null;
-    });
-
-    assert(object.x.x.x === object);
-    assert(newObject.x.x === null);
-  }
-
-  noProxy(() => {
-    let error;
-
-    try {
-      mutate(object, newObject => {
-        newObject.x.x = null;
-      });
-    } catch (e) {
-      error = e;
-    }
-
-    assert(error && error.message === 'Unexpected cyclic or shared reference');
+  const newObject = mutate(object, newObject => {
+    newObject.x.x = null;
   });
+
+  assert(object.x.x.x === object);
+  assert(newObject.x.x === null);
 }
 
 { // using a copy reference in an object spread
@@ -694,7 +672,7 @@ type Cyclic = {x: Cyclic}
   } catch (e) {
     error = e;
   }
-  PROXY_SUPPORT && assert(error && error.message.includes('forgotten to call unwrap'));
+  assert(error && error.message.includes('forgotten to call unwrap'));
 
   // Check that the error can trigger twice
   try {
@@ -702,7 +680,7 @@ type Cyclic = {x: Cyclic}
   } catch (e) {
     error = e;
   }
-  PROXY_SUPPORT && assert(error && error.message.includes('forgotten to call unwrap'));
+  assert(error && error.message.includes('forgotten to call unwrap'));
 
   copy = mutate/*:: <any, _>*/(orig, (copy, unwrap) => {
     copy.foo = {...unwrap(copy.foo)};
@@ -751,9 +729,7 @@ type Cyclic = {x: Cyclic}
     } catch (e) {
       error = e;
     }
-    PROXY_SUPPORT && assert(
-      error && error.message.includes('not extensible'),
-    );
+    assert(error && error.message.includes('not extensible'));
     assert(Object.isExtensible(copy) === false);
   });
   assert(Object.isExtensible(copy) === false);

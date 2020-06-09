@@ -1,17 +1,3 @@
-export let PROXY_SUPPORT = true;
-try {
-  eval('new Proxy({}, {})');
-} catch (e) {
-  PROXY_SUPPORT = false;
-}
-
-export const noProxy = (cb) => {
-  const oldValue = PROXY_SUPPORT;
-  PROXY_SUPPORT = false;
-  cb();
-  PROXY_SUPPORT = oldValue;
-};
-
 export const PROXY_UNWRAP_KEY = '__SECRET_UNWRAP_KEY__';
 
 export const NON_CONFIGURABLE = Object.freeze({configurable: false});

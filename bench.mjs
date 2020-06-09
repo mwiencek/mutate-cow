@@ -6,7 +6,6 @@
  */
 
 import Benchmark from 'benchmark';
-import {noProxy} from './constants.mjs';
 import mutate from './index.mjs';
 
 const root = {};
@@ -34,8 +33,7 @@ function test() {
 }
 
 new Benchmark.Suite()
-  .add('proxy', test)
-  .add('no proxy', () => { noProxy(test) })
+  .add('test', test)
   .on('cycle', function (event) {
     console.log(String(event.target));
   })

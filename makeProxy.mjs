@@ -78,7 +78,7 @@ Context.prototype.throwIfRevoked = function () {
 
 export default function makeProxy(ctx, source, callbacks) {
   ctx.copy = canClone(source)
-    ? clone(source, callbacks, false, null)
+    ? clone(source, callbacks)
     : null;
 
   const childProxies = Object.create(null);

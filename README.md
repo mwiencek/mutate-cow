@@ -15,7 +15,7 @@ const newAnimals = mutate(animals, copy => {
 
 This module allows you to update an immutable object as if it were mutable, inside a callback. It has copy-on-write semantics, so properties are only changed if you write to them. (In fact, if you perform no writes, the same object is returned back.) This makes it useful in conjuction with libraries like React, where state may be compared by reference.
 
-It's implemented using [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects. A slow path that recursively clones and compares objects is used if `Proxy` is unavailable, but it's not fully compatible.
+It's implemented using [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects, so browser support for that is required.
 
 While this doesn't appear to have been an original idea, I believe `mutate-cow` provides useful features that other packages don't:
 

@@ -5,8 +5,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import canClone from './canClone.mjs';
-
 import {
   NON_CONFIGURABLE,
   NON_CONFIGURABLE_AND_WRITABLE,
@@ -24,16 +22,13 @@ function restoreDescriptors(copy, changedDescriptors) {
   }
 }
 
-export default function clone(source, callbacks, recursive, seenValues) {
+export default function clone(source, callbacks) {
   let changedDescriptors;
   let copy;
   if (Array.isArray(source)) {
     copy = new Array(source.length);
   } else {
     copy = Object.create(Reflect.getPrototypeOf(source));
-  }
-  if (recursive) {
-    seenValues.push(source);
   }
   const ownNames = Object.getOwnPropertyNames(source);
   for (let i = 0; i < ownNames.length; i++) {
@@ -56,14 +51,6 @@ export default function clone(source, callbacks, recursive, seenValues) {
         changedDescriptors = [];
       }
       changedDescriptors.push([name, origDesc]);
-    }
-    if (recursive && canClone(desc.value)) {
-      // We could return the previously cloned value here, but that
-      // isn't how the proxy implementation behaves.
-      if (seenValues.indexOf(desc.value) >= 0) {
-        throw new Error('Unexpected cyclic or shared reference');
-      }
-      desc.value = clone(desc.value, callbacks, true, seenValues);
     }
     Reflect.defineProperty(copy, name, desc);
   }
