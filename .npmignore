@@ -1,3 +1,4 @@
+.flowconfig
 bench.js
 dist/
 serve.json
