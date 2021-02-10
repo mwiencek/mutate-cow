@@ -5,35 +5,59 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import {
-  NON_CONFIGURABLE,
-  NON_CONFIGURABLE_AND_WRITABLE,
-  NON_WRITABLE,
-} from './constants';
+const NON_CONFIGURABLE = Object.freeze(Object.create(null, {
+  configurable: {
+    enumerable: true,
+    value: false,
+  },
+}));
+
+const NON_WRITABLE = Object.freeze(Object.create(null, {
+  writable: {
+    enumerable: true,
+    value: false,
+  },
+}));
+
+const NON_CONFIGURABLE_AND_WRITABLE = Object.freeze(Object.create(null, {
+  configurable: {
+    enumerable: true,
+    value: false,
+  },
+  writable: {
+    enumerable: true,
+    value: false,
+  },
+}));
 
 function restoreDescriptors(copy, changedDescriptors) {
   for (let i = 0; i < changedDescriptors.length; i++) {
     const [name, origDesc] = changedDescriptors[i];
-    const desc = Reflect.getOwnPropertyDescriptor(copy, name);
+    const desc = Object.getOwnPropertyDescriptor(copy, name);
     if (desc) {
       Object.assign(desc, origDesc);
-      Reflect.defineProperty(copy, name, desc);
+      Object.defineProperty(copy, name, desc);
     }
   }
 }
 
-export default function clone(source, callbacks) {
+export default function clone(ctx) {
+  const source = ctx.source;
   let changedDescriptors;
   let copy;
-  if (Array.isArray(source)) {
+  const isArray = Array.isArray(source);
+  if (isArray) {
     copy = new Array(source.length);
   } else {
-    copy = Object.create(Reflect.getPrototypeOf(source));
+    copy = Object.create(Object.getPrototypeOf(source));
   }
   const ownNames = Object.getOwnPropertyNames(source);
   for (let i = 0; i < ownNames.length; i++) {
     const name = ownNames[i];
-    const desc = Reflect.getOwnPropertyDescriptor(source, name);
+    if (isArray && name === 'length') {
+      continue;
+    }
+    const desc = Object.getOwnPropertyDescriptor(source, name);
     const nonConfigurable = desc.configurable === false;
     let origDesc;
     if (nonConfigurable) {
@@ -52,13 +76,19 @@ export default function clone(source, callbacks) {
       }
       changedDescriptors.push([name, origDesc]);
     }
-    Reflect.defineProperty(copy, name, desc);
+    Object.defineProperty(copy, name, desc);
   }
   if (changedDescriptors) {
-    callbacks.push([restoreDescriptors, copy, changedDescriptors]);
+    if (ctx.callbacks == null) {
+      ctx.callbacks = [];
+    }
+    ctx.callbacks.push([restoreDescriptors, copy, changedDescriptors]);
   }
-  if (!Reflect.isExtensible(source)) {
-    callbacks.push([Reflect.preventExtensions, copy]);
+  if (!Object.isExtensible(source)) {
+    if (ctx.callbacks == null) {
+      ctx.callbacks = [];
+    }
+    ctx.callbacks.push([Object.preventExtensions, copy]);
   }
-  return copy;
+  ctx.result = copy;
 }

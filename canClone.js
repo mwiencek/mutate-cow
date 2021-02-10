@@ -14,7 +14,7 @@ export default function canClone(object) {
     return false;
   }
 
-  let proto = Reflect.getPrototypeOf(object);
+  let proto = Object.getPrototypeOf(object);
   while (proto) {
     const ctor = proto.constructor;
     // A Generator object's constructor is an object.
@@ -29,7 +29,7 @@ export default function canClone(object) {
       return false;
     }
 
-    proto = Reflect.getPrototypeOf(proto);
+    proto = Object.getPrototypeOf(proto);
   }
 
   return true;

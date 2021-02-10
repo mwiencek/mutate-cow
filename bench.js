@@ -19,17 +19,49 @@ for (let i = 65, next = root; i <= 90; i++) {
   };
 }
 
-const updater1 = (newRoot) => {
-  newRoot.root = true;
+const updater1 = () => {
+  const m = mutate(root);
+  m.get('root').set(true);
+  m.final();
 };
 
-const updater2 = (newRoot) => {
-  newRoot.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.leaf = true;
+const updater2 = () => {
+  const m = mutate(root);
+  m
+    .get('A')
+    .get('B')
+    .get('C')
+    .get('D')
+    .get('E')
+    .get('F')
+    .get('G')
+    .get('H')
+    .get('I')
+    .get('J')
+    .get('K')
+    .get('L')
+    .get('M')
+    .get('N')
+    .get('O')
+    .get('P')
+    .get('Q')
+    .get('R')
+    .get('S')
+    .get('T')
+    .get('U')
+    .get('V')
+    .get('W')
+    .get('X')
+    .get('Y')
+    .get('Z')
+    .get('leaf')
+    .set(true);
+  m.final();
 };
 
 function test() {
-  mutate(root, updater1); // shallow update
-  mutate(root, updater2); // deep update
+  updater1(); // shallow update
+  updater2(); // deep update
 }
 
 new Benchmark.Suite()

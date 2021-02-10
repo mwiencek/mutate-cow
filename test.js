@@ -7,7 +7,6 @@
  */
 
 import mutate from './main';
-import {PROXY_UNWRAP_KEY} from './constants';
 
 function assert(truth, message) {
   if (!truth) {
@@ -24,19 +23,12 @@ type ReadOnlyDatePeriod = {
   +year: number,
 };
 
-type Person = {
-  name: string,
-  birth_date: DatePeriod,
-  death_date: DatePeriod,
-};
-
 type ReadOnlyPerson = {
   +name: string,
   +birth_date: ReadOnlyDatePeriod,
   +death_date: ReadOnlyDatePeriod,
 };
 
-type People = Array<Person>;
 type ReadOnlyPeople = $ReadOnlyArray<ReadOnlyPerson>;
 */
 
@@ -55,65 +47,52 @@ const frozenBob /*: ReadOnlyPerson */ = Object.freeze({
   death_date: Object.freeze({year: 2988}),
 });
 
-{ // object not copied if no writes are made
+{ // simple write
+  const mutator = mutate/*:: <ReadOnlyPerson>*/(alice);
 
-  const copy = mutate/*:: <Person, _>*/(alice, (copy) => {
-    assert('name' in copy);
-    assert('birth_date' in copy);
-    assert('death_date' in copy);
-    assert('year' in copy.birth_date);
-    assert('year' in copy.death_date);
+  mutator.get('birth_date').get('year').set(1988);
 
-    copy.name;
-    copy.birth_date.year;
-    copy.death_date.year;
+  const result = mutator.result;
+  assert(result !== alice);
+  assert(result.birth_date !== alice.birth_date);
+  assert(result.birth_date.year === 1988);
+  assert(result.death_date === aliceDeathDate);
 
-    const properties = Object.getOwnPropertyNames(copy).sort();
-    assert(properties.length === 3);
-    assert(properties[0] === 'birth_date');
-    assert(properties[1] === 'death_date');
-    assert(properties[2] === 'name');
-  });
-
-  assert(alice === copy);
-}
-
-{
-  const copy = mutate/*:: <Person, _>*/(alice, (copy) => {
-    assert(copy.birth_date.year === 2100);
-    copy.birth_date.year = 1988;
-    assert(copy.birth_date.year === 1988);
-  });
-
-  assert(copy !== alice);
-  assert(copy.birth_date !== alice.birth_date);
-  assert(copy.birth_date.year === 1988);
-  assert(copy.death_date === aliceDeathDate);
-
+  // original object is unchanged
   assert(alice.name === 'Alice');
   assert(alice.birth_date === aliceBirthDate);
   assert(alice.birth_date.year === 2100);
   assert(alice.death_date === aliceDeathDate);
   assert(alice.death_date.year === 2330);
+
+  const copy = mutator.final();
+  assert(copy === result);
 }
 
-{
-  let copy = mutate/*:: <Person, _>*/(frozenBob, (copy) => {
-    copy.name;
-    copy.birth_date.year;
-    copy.death_date.year;
-  });
+{ // object not copied if no writes are made
 
-  assert(copy === frozenBob);
+  const mutator = mutate/*:: <ReadOnlyPerson>*/(alice);
 
-  copy = mutate/*:: <Person, _>*/(frozenBob, (copy) => {
-    assert(copy.birth_date.year === 2450);
-    copy.birth_date.year = 1988;
-    assert(copy.birth_date.year === 1988);
-  });
+  mutator.get('birth_date').set(alice.birth_date);
+  mutator.get('death_date').set(alice.death_date);
 
+  const copy = mutator.final();
+  assert(alice === copy);
+  assert(alice.birth_date === copy.birth_date);
+  assert(alice.death_date === copy.death_date);
+  assert(copy.birth_date.year === 2100);
+  assert(copy.death_date.year === 2330);
+}
+
+{ // frozenness is preserved
+  const mutator = mutate/*:: <ReadOnlyPerson>*/(frozenBob);
+
+  mutator.get('birth_date').get('year').set(1988);
+  assert(mutator.result.birth_date.year === 1988);
+
+  const copy = mutator.final();
   assert(copy !== frozenBob);
-  // frozenness is preserved
+
   assert(Object.isFrozen(copy));
   assert(copy.birth_date !== frozenBob.birth_date);
   assert(Object.isFrozen(copy.birth_date));
@@ -121,38 +100,7 @@ const frozenBob /*: ReadOnlyPerson */ = Object.freeze({
   assert(copy.death_date === frozenBob.death_date);
 }
 
-const people/*: ReadOnlyPeople */ = [alice, frozenBob];
-
-{ // object not copied if no writes are made
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    copy[0].death_date.year;
-    copy[1].death_date.year;
-  });
-
-  assert(people === copy);
-  assert(people[0] === copy[0]);
-  assert(people[1] === copy[1]);
-  assert(people[0].birth_date === copy[0].birth_date);
-  assert(people[1].death_date === copy[1].death_date);
-}
-
-{ // object not copied if assignments don't change the underlying data
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    copy[0] = copy[0];
-    copy[0].birth_date = copy[0].birth_date;
-    copy[0].birth_date.year = copy[0].birth_date.year;
-    copy[0].birth_date.year = 2100;
-  });
-
-  assert(people === copy);
-  assert(people[0] === copy[0]);
-  assert(people[1] === copy[1]);
-  assert(people[0].birth_date === copy[0].birth_date);
-  assert(people[1].death_date === copy[1].death_date);
-  assert(copy[0].birth_date.year === 2100);
-}
+const people/*: ReadOnlyPeople */ = Object.freeze([alice, frozenBob]);
 
 { // object delete
 
@@ -179,139 +127,101 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
     value: 3,
   });
 
-  const copy = mutate/*:: <{foo?: number, bar?: number, baz?: number}, _>*/(orig, (copy) => {
-    delete copy.foo;
-    delete copy.bar;
-    delete copy.baz;
+  const mutator = mutate/*:: <{foo?: number, bar?: number, baz?: number}> */(orig);
+
+  mutator.run(x => {
+    delete x.foo;
+    delete x.bar;
+    delete x.baz;
   });
 
   assert(orig.foo === 1);
   assert(orig.bar === 2);
   assert(orig.baz === 3);
+
+  const copy = mutator.final();
   assert(!copy.hasOwnProperty('foo'));
   assert(!copy.hasOwnProperty('bar'));
   assert(!copy.hasOwnProperty('baz'));
 }
 
-{ // overwriting a cloned object
+{ // re-using mutators is not allowed
 
   const orig = {foo: {bar: 1}};
-  const bar3 = {bar: 3};
 
-  const copy = mutate/*:: <{foo: {bar: number}}, _>*/(orig, (copy) => {
-    copy.foo.bar = 2;
-    assert(copy.foo.bar === 2);
-    copy.foo = bar3;
-    assert(copy.foo.bar === 3);
-    copy.foo.bar = 4;
-    assert(copy.foo.bar === 4);
-    assert(bar3.bar === 3);
-  });
+  const mutator = mutate/*:: <{foo: {bar: number}}, _>*/(orig);
+  const fooMutator = mutator.get('foo');
+  const barMutator = fooMutator.get('bar');
 
-  assert(orig.foo.bar === 1);
+  // this clones orig and orig.foo
+  barMutator.set(2);
+  assert(mutator.result.foo.bar === 2);
+
+  // override the orig.foo clone with our own
+  const ourFoo = Object.freeze({bar: 3});
+  fooMutator.set(ourFoo);
+  assert(mutator.result.foo.bar === 3);
+
+  // barMutator is finalized - mutators can only be set once
+  let error;
+  try {
+    barMutator.set(4);
+  } catch (e) {
+    error = e;
+  }
+  assert(
+    error &&
+    error.message === 'This mutator has been finalized, and can no longer be accessed.'
+  );
+
+  mutator.get('foo').get('bar').set(4);
+
+  const copy = mutator.final();
   assert(copy.foo.bar === 4);
+  assert(orig.foo.bar === 1);
+  assert(ourFoo.bar === 3);
 }
 
-{ // defineProperty
+{ // arrays
 
-  const orig/*: {+foo?: number, bar?: number} */ = {};
+  const mutator = mutate/*:: <ReadOnlyPeople>*/(people);
 
-  Object.defineProperty(orig, 'bar', {
-    configurable: false,
-    enumerable: true,
-    value: 0,
-    writable: false,
+  mutator.run(x => {
+    x.push(alice);
+    x.splice(0, 1);
   });
 
-  const copy = mutate/*:: <{foo?: number, bar?: number}, _>*/(orig, (copy) => {
-    let desc = Reflect.getOwnPropertyDescriptor(copy, 'bar');
-    // read-only properties are configurable and writable inside `mutate`
-    assert(desc && desc.configurable);
-    assert(desc && desc.writable);
-    copy.bar = 1;
-
-    // read-only properties defined inside `mutate` stay read-only
-    Object.defineProperty(copy, 'foo', {
-      configurable: false,
-      enumerable: true,
-      value: 1,
-      writable: false,
-    });
-
-    desc = Reflect.getOwnPropertyDescriptor(copy, 'foo');
-    let error;
-    try {
-      copy.foo = 2;
-    } catch (e) {
-      error = e;
-    }
-    assert(error && error.message.includes('read only property'));
-  });
-
-  assert(!orig.hasOwnProperty('foo'));
-  assert(orig.bar === 0);
-  assert(copy.bar === 1);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'bar').configurable === false);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'bar').writable === false);
-  assert(copy.foo === 1);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'foo').configurable === false);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'foo').writable === false);
-}
-
-{ // array push
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    assert(Array.isArray(copy));
-    copy.push((alice/*: any */));
-  });
-
-  assert(copy !== people);
-  assert(people.length === 2);
-  assert(copy.length === 3);
-  assert(copy[2] === alice);
-}
-
-{ // array delete
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    delete copy[1];
-  });
-
+  const copy = mutator.final();
+  assert(Array.isArray(copy));
   assert(copy !== people);
   assert(copy.length === 2);
-  assert(copy[0] === alice);
-  assert(copy[1] === undefined);
-}
-
-{ // splice
-  let copy = mutate/*:: <People, _>*/(people, (copy) => {
-    assert(Array.isArray(copy));
-    copy.splice(0, 1);
-  });
-
-  assert(copy !== people);
-  assert(people.length === 2);
-  assert(copy.length === 1);
   assert(copy[0] === frozenBob);
+  assert(copy[1] === alice);
 }
 
 { // objects are copied only once
 
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    const proxy1 = copy[0].death_date;
-    proxy1.year = 5000;
-    assert(proxy1 === copy[0].death_date); // proxy is unchanged
-    const ref1 = proxy1[PROXY_UNWRAP_KEY];
-    assert(people[0].death_date !== ref1); // reference was copied
-    assert(people[0].death_date.year === 2330);
-    assert(proxy1.year === 5000);
-    proxy1.year  = 4000;
-    const ref2 = copy[0].death_date[PROXY_UNWRAP_KEY];
-    assert(ref1 === ref2); // reference was copied only once
-    assert(ref1.year === 4000);
-    proxy1.year = 3000;
-  });
+  const mutator = mutate(people);
 
+  const deathDateMutator = mutator.get(0).get('death_date');
+  deathDateMutator.get('year').set(5000);
+  const deathDateCopy = deathDateMutator.result;
+  assert(deathDateCopy === mutator.result[0].death_date);
+
+  assert(people[0].death_date !== deathDateCopy); // reference was copied
+  assert(people[0].death_date.year === 2330);
+  assert(deathDateCopy.year === 5000);
+  assert(deathDateMutator.get('year').result === 5000);
+
+  deathDateMutator.get('year').set(4000);
+  // reference was copied only once
+  assert(deathDateCopy === mutator.result[0].death_date);
+  assert(deathDateCopy.year === 4000);
+  assert(deathDateMutator.get('year').result === 4000);
+
+  deathDateMutator.get('year').set(3000);
+
+  const copy = mutator.final();
   assert(copy[0] !== alice);
   assert(copy[0].birth_date === alice.birth_date);
   assert(copy[0].death_date !== aliceDeathDate);
@@ -320,7 +230,7 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
 }
 
 /*::
-type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
+type WeirdArray = $ReadOnlyArray<number> & {+weird: boolean};
 */
 
 { // non-index array properties
@@ -332,18 +242,21 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     writable: false,
   })/*: any */);
 
-  const weirdCopy = mutate/*:: <{|weird: boolean|} & Array<number>, _>*/(weird, (copy) => {
-    copy.push(666);
-    assert(copy.weird === true, 'weird');
-    copy.weird = false;
+  const mutator = mutate(weird);
+  // $FlowIgnore[incompatible-use]
+  mutator.get('weird').set(false);
+
+  mutator.run(x => {
+    x.push(666);
   });
 
-  assert(weird !== weirdCopy, 'reference is changed');
-  assert(weirdCopy.length === 4, 'item was added');
-  assert(weirdCopy[3], 'added item is 666');
+  const copy = mutator.final();
+  assert(weird !== copy, 'reference is changed');
+  assert(copy.length === 4, 'item was added');
+  assert(copy[3] === 666, 'added item is 666');
   assert(weird.length === 3, 'original reference is unchanged');
   assert(weird.weird === true, 'original reference is unchanged');
-  assert(weirdCopy.weird === false, 'not weird');
+  assert(copy.weird === false, 'not weird');
 }
 
 { // array property descriptors
@@ -357,98 +270,43 @@ type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
     writable: false,
   });
 
-  const descArrayCopy = mutate/*:: <{value: Array<number>}, _>*/(descArray, (copy) => {
-    let desc = Object.getOwnPropertyDescriptor(copy.value, 'length');
-    assert(desc && desc.configurable === false);
-    assert(desc && desc.writable === true);
-    copy.value[1] = 0;
-    desc = Object.getOwnPropertyDescriptor(copy.value, 'length');
-    assert(desc && desc.configurable === false);
-    assert(desc && desc.writable === true);
+  const descArrayMutator = mutate(descArray);
+  descArrayMutator.get('value').run(x => {
+    x[1] = 0;
   });
 
-  assert(descArray.value[1] === 2);
+  const copy = descArrayMutator.final();
+  const desc = Object.getOwnPropertyDescriptor(copy.value, 1);
 
-  const newDesc1 = Object.getOwnPropertyDescriptor(descArrayCopy.value, 1);
-  assert(!(newDesc1/*: any */).configurable);
-  assert((newDesc1/*: any */).enumerable);
-  assert((newDesc1/*: any */).value === 0);
-  assert(!(newDesc1/*: any */).writable);
+  assert(desc);
+  /*:: if (!desc) throw ''; */
+
+  assert(!desc.configurable);
+  assert(desc.enumerable);
+  assert(desc.value === 0);
+  assert(!desc.writable);
 }
 
 /*::
-type SharedFoo = {foo: string};
+type SharedFoo = {+foo: string};
 */
 
 { // shared reference within one object
 
-  const shared/*: $ReadOnly<SharedFoo> */ = {foo: ''};
+  const shared/*: SharedFoo */ = {foo: ''};
 
-  const object = {
+  const object/*: {+prop1: SharedFoo, +prop2: SharedFoo} */ = {
     prop1: shared,
     prop2: shared,
   };
 
-  const copy = mutate/*:: <{prop1: SharedFoo, prop2: SharedFoo}, _>*/(object, (copy) => {
-    copy.prop1.foo = 'abc';
-    assert(copy.prop1.foo === 'abc');
-    assert(copy.prop2.foo === '');
-    const ref = copy.prop1;
-    assert(shared.foo === '');
-    copy.prop2.foo = '123';
-    assert(copy.prop1.foo === 'abc');
-    assert(copy.prop2.foo === '123');
-    assert(copy.prop1[PROXY_UNWRAP_KEY] === ref[PROXY_UNWRAP_KEY]); // copied only once
-    assert(shared.foo === '');
-  });
+  const mutator = mutate(object);
+  mutator.get('prop1').get('foo').set('abc');
 
-  assert(copy.prop1.foo === 'abc');
-  assert(copy.prop2.foo === '123');
+  const copy = mutator.final();
   assert(shared.foo === '');
-}
-
-/*::
-type NestedShared = {foo: {foo: Array<number>}};
-type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
-*/
-
-{ // nested calls + shared reference across two objects
-
-  const shared/*: {+foo: $ReadOnlyArray<number>} */ = {foo: [1]};
-  const objectA/*: ReadOnlyNestedShared */ = {foo: shared};
-  const objectB/*: ReadOnlyNestedShared */ = {foo: shared};
-
-  const objectACopy = mutate/*:: <NestedShared, _>*/(objectA, (copyA) => {
-    const objectBCopy = mutate/*:: <NestedShared, _>*/(objectB, (copyB) => {
-      copyA.foo.foo[0] = 2;
-      copyB.foo.foo[0] = 3;
-      assert(copyA.foo.foo[0] === 2);
-      assert(copyB.foo.foo[0] === 3);
-    });
-    assert(copyA.foo.foo[0] === 2);
-    assert(objectBCopy.foo.foo[0] === 3);
-  });
-
-  assert(objectACopy.foo.foo[0] === 2);
-}
-
-{ // nested call on proxied object
-
-  const source/*: {+foo: {+bar: number}} */ = {foo: {bar: 0}};
-
-  const copy = mutate/*:: <{foo: {bar: number}}, _>*/(source, copy => {
-    copy.foo.bar++;
-
-    copy.foo = mutate/*:: <{bar: number}, _>*/(copy.foo, fooCopy => {
-      copy.foo.bar++; // overridden
-      fooCopy.bar++;
-      copy.foo.bar++; // overridden
-    });
-
-    copy.foo.bar++;
-  });
-
-  assert(copy.foo.bar === 3);
+  assert(copy.prop1.foo === 'abc');
+  assert(copy.prop2 === shared);
 }
 
 { // classes
@@ -467,12 +325,11 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
   }
 
   const instance = new NiceClass();
+  const mutator = mutate(instance);
+  // $FlowIssue[prop-missing]
+  mutator.get('value').set('naughty');
 
-  const copy = mutate/*:: <NiceClass, _>*/(instance, (copy) => {
-    assert(copy instanceof NiceClass);
-    copy.value = 'naughty';
-  });
-
+  const copy = mutator.final();
   assert(instance !== copy);
   assert(copy instanceof NiceClass);
   assert(copy.value === 'naughty');
@@ -491,145 +348,65 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     },
   };
 
-  const copy1 = mutate/*:: <typeof orig, _>*/(orig, (copy) => {
-    copy.value.foo = 1;
-  });
+  const mutator = mutate(orig);
+  mutator.get('value').get('foo').set(1);
 
-  const newObject = {foo: 0};
-
-  const copy2 = mutate/*:: <typeof orig, _>*/(orig, (copy) => {
-    copy.value = newObject;
-    assert(copy.value.foo === 0);
-    // This should copy newObject; otherwise we'd be able to have
-    // side-effects across multiple objects.
-    copy.value.foo = 2;
-    assert(newObject.foo === 0);
-  });
-
+  const copy = mutator.final();
   assert(orig.value.foo === undefined);
   assert(orig.value === orig.object);
-  assert(copy1.value.foo === 1);
-  assert(copy1.value === copy1.object);
-  assert(copy2.value.foo === 2);
-  assert(copy2.value === copy2.object);
-}
-
-{ // functions
-
-  const origFunc = function () {
-    return this.value;
-  };
-
-  const orig/*: {|+func: () => string, +value: string|} */ = {
-    func: origFunc,
-    value: 'abc',
-  };
-
-  const copy = mutate/*:: <{func: (() => string) & {prop?: boolean}, value: string}, _>*/(orig, (copy) => {
-    assert(typeof copy.func === 'function');
-    assert(copy.func instanceof Function);
-    assert(copy.func() === 'abc');
-    copy.value = '123';
-    assert(copy.func() === '123');
-
-    let error;
-    try {
-      copy.func.prop = true;
-    } catch (e) {
-      error = e;
-    }
-
-    // Can't clone functions, so the above should error.
-    assert(error && error.message.includes('unsupported'));
-
-    copy.func = () => '';
-    assert(copy.func() === '');
-  });
+  assert(copy.value.foo === 1);
+  assert(copy.value === copy.object);
 }
 
 { // null prorotypes
 
-  const orig/*: {__proto__: null, +value: {__proto__: null, +number: number}} */ = Object.create(null, {
+  const orig/*: {__proto__: null, +value: number} */ = Object.create(null, {
     value: {
       configurable: true,
       enumerable: true,
-      value: Object.create(null, {
-        number: {
-          configurable: true,
-          enumerable: true,
-          value: 1,
-          writable: false,
-        },
-      }),
+      value: 1,
       writable: false,
     },
   });
 
-  const copy = mutate/*:: <{__proto__: null, value: {__proto__: null, number: number}}, _>*/(orig, (copy) => {
-    copy.value.number = 2;
-  });
+  const mutator = mutate(orig);
+  mutator.get('value').set(2);
 
-  assert(orig.value.number === 1);
-  assert(copy.value.number === 2);
+  const copy = mutator.final();
+  assert(orig.value === 1);
+  assert(copy.value === 2);
   assert(Object.getPrototypeOf(copy) === null);
-  assert(Object.getPrototypeOf(copy.value) === null);
 }
 
-{ // Number / String objects
+{ // primitives
 
-  const orig/*: {+num: Number, +str: String} */ = {
-    num: new Number(1),
-    str: new String('hello'),
+  assert(mutate(1).set(null) === null);
+  assert(mutate(1).set(undefined) === undefined);
+  assert(mutate(1).set('') === '');
+}
+
+{ // built-ins
+
+  const checkForError = /*:: <T> */(value/*: T */) => {
+    let error = null;
+    try {
+      const mutator = mutate(value);
+      mutator.run(x => undefined);
+    } catch (e) {
+      error = e;
+    }
+    assert(
+      error &&
+      error.message === 'Only simple arrays and objects can be cloned.'
+    );
   };
 
-  const copy = mutate/*:: <{num: Number, str: String}, _>*/(orig, (copy) => {
-    let error;
-
-    error = null;
-    try {
-      copy.num.valueOf();
-    } catch (e) {
-      error = e;
-    }
-    assert(error && error.message.includes('unsupported'));
-
-    copy.num = new Number(orig.num.valueOf() + 2);
-
-    error = null;
-    try {
-      copy.str[4] = 'p';
-    } catch (e) {
-      error = e;
-    }
-    assert(error && error.message.includes('unsupported'));
-  });
-
-  assert(orig.num.valueOf() === 1);
-  assert(orig.str.valueOf() === 'hello');
-  assert(copy.num.valueOf() === 3);
-  assert(copy.str === orig.str);
-}
-
-{ // non-objects
-
-  let error = null;
-  try { mutate(null, () => {}) } catch (e) { error = e }
-  assert(error && error.message === 'Expected an object to mutate');
-}
-
-{ // derived built-ins
-
   class FunDate extends Date {}
+  checkForError(new FunDate());
 
-  let error = null;
-  try {
-    mutate(new FunDate(), (copy) => {
-      copy.setFullYear(1999);
-    });
-  } catch (e) {
-    error = e;
-  }
-  assert(error && error.message.includes('unsupported'));
+  checkForError(new Number(1));
+  checkForError(new String('hello'));
+  checkForError(x => x);
 }
 
 /*::
@@ -641,109 +418,11 @@ type Cyclic = {x: Cyclic}
   const object/*: Cyclic */ = {};
   object.x = object;
 
-  const newObject = mutate(object, newObject => {
-    newObject.x.x = null;
-  });
+  const mutator = mutate(object);
+  // $FlowIgnore[incompatible-call]
+  mutator.get('x').get('x').set(null);
 
+  const copy = mutator.final();
   assert(object.x.x.x === object);
-  assert(newObject.x.x === null);
-}
-
-{ // using a copy reference in an object spread
-
-  const orig/*: any */ = {
-    foo: {
-      bar: {
-        baz: 1,
-      },
-      func: function () {
-        return this;
-      },
-    },
-  };
-
-  let copy = mutate/*:: <any, _>*/(orig, (copy) => {
-    copy.foo = {...copy.foo};
-  });
-
-  let error = null;
-  try {
-    copy.foo.bar.baz;
-  } catch (e) {
-    error = e;
-  }
-  assert(error && error.message.includes('forgotten to call unwrap'));
-
-  // Check that the error can trigger twice
-  try {
-    copy.foo.bar.baz;
-  } catch (e) {
-    error = e;
-  }
-  assert(error && error.message.includes('forgotten to call unwrap'));
-
-  copy = mutate/*:: <any, _>*/(orig, (copy, unwrap) => {
-    copy.foo = {...unwrap(copy.foo)};
-    assert(copy.foo.func() === copy.foo);
-  });
-
-  assert(copy.foo.func() === copy.foo);
-  assert(copy.foo.bar === orig.foo.bar);
-}
-
-{ // construct
-
-  function Cls() {
-    this.foo = 1;
-  }
-
-  const orig = {
-    Cls,
-  };
-
-  const copy = mutate(orig, (copy) => {
-    const c = new copy.Cls();
-    assert(c instanceof Cls);
-    assert(c.foo === 1);
-  });
-}
-
-{ // Object.freeze on a proxied object
-
-  // Arrays are somewhat special, because Object.freeze will attempt to make
-  // the `length` property non-configurable and non-writable via the
-  // defineProperty trap. However, a non-configurable property "cannot be
-  // non-writable, unless there exists a corresponding non-configurable,
-  // non-writable own property on the target object," i.e. our fake proxy
-  // target.
-  const copy = mutate([0], copy => {
-    Object.freeze(copy);
-
-    const desc = Object.getOwnPropertyDescriptor(copy, 'length');
-    assert(desc && !desc.configurable);
-    assert(desc && !desc.writable);
-
-    let error;
-    try {
-      copy.error = true;
-    } catch (e) {
-      error = e;
-    }
-    assert(error && error.message.includes('not extensible'));
-    assert(Object.isExtensible(copy) === false);
-  });
-  assert(Object.isExtensible(copy) === false);
-}
-
-{ // Assigning an externally-frozen object inside the proxy
-
-  const source = {ref: null};
-  const frozenRef = {name: ''};
-  Object.freeze(frozenRef);
-
-  const copy = mutate/*:: <{ref: {name: string}}, _>*/(source, copy => {
-    copy.ref = frozenRef;
-    copy.ref.name = 'hi';
-  });
-  assert(copy.ref && copy.ref.name === 'hi');
+  assert(copy.x.x === null);
 }

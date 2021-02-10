@@ -1,8 +1,17 @@
 // @flow
 
-declare function mutate<Rw, Ro>(
-  source: Ro,
-  updater: (Rw, <T>(T) => T) => void,
-): Ro;
+type GetWritableT =
+  & (<T>($ReadOnlyArray<T>) => Array<T>)
+  & (<T: {...}>(T) => {...T})
+  & (<T>(T) => T);
 
-declare export default typeof mutate;
+declare class Mutator<T> {
+  +result: T,
+  +get: <A>(property: A) => Mutator<$ElementType<T, A>>,
+  +set: (newValue: T) => T,
+  +run: (callback: ($Call<GetWritableT, T>) => void) => T,
+}
+
+declare export default function mutate<T>(
+  source: T,
+): Mutator<T>;

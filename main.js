@@ -5,40 +5,13 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import {
-  CANNOT_CLONE_ERROR,
-  PROXY_UNWRAP_KEY,
-} from './constants';
-import isObject from './isObject';
-import makeProxy, {Context} from './makeProxy';
-import unwrap from './unwrap';
+import Mutator from './Mutator';
 
-export default function mutate(source, updater) {
-  if (!isObject(source)) {
-    throw new Error('Expected an object to mutate');
-  }
-
-  let copy = null;
-  const callbacks = [];
-
-  const ctx = new Context(
+export default function mutate(source) {
+  return new Mutator(
+    source,
     null,
     null,
     null,
   );
-  const proxy = makeProxy(
-    ctx,
-    source[PROXY_UNWRAP_KEY] || source,
-    callbacks,
-  );
-  updater(proxy, unwrap);
-  copy = proxy[PROXY_UNWRAP_KEY];
-  ctx.revoke();
-
-  for (let i = callbacks.length - 1; i >= 0; i--) {
-    const [callback, ...args] = callbacks[i];
-    callback(...args);
-  }
-
-  return copy;
 }

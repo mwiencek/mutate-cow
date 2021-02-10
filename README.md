@@ -3,90 +3,117 @@
 ```JavaScript
 import mutate from 'mutate-cow';
 
-const animals = Object.freeze({
-  cats: Object.freeze(['ragamuffin', 'shorthair', 'maine coon']),
-});
-
-const newAnimals = mutate(animals, copy => {
-  copy.cats.push('bobtail');
-  copy.dogs = Object.freeze(['hound']);
-});
+mutate({ cats: ['ragamuffin'] })
+  .get('cats')
+  .run(x => { x.push('bobtail') });
 ```
 
-This module allows you to update an immutable object as if it were mutable, inside a callback. It has copy-on-write semantics, so properties are only changed if you write to them. (In fact, if you perform no writes, the same object is returned back.) This makes it useful in conjuction with libraries like React, where state may be compared by reference.
-
-It's implemented using [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects, so browser support for that is required.
+This module aims to help make deep, immutable updates to objects easier. It has copy-on-write semantics, so properties are only changed if you write to them. (If you perform no writes, the same object is returned back.) This makes it useful in conjunction with libraries like React, where state may be compared by reference.
 
 While this doesn't appear to have been an original idea, I believe `mutate-cow` provides useful features that other packages don't:
 
- * All property descriptors from the immutable object are preserved in the copy.
- * All extensibility information from the immutable object is preserved in the copy. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen. (Inside the callback, of course, the working copy in unsealed and all properties are writable.)
- * Getters and setters from the immutable object can be used inside the callback, and are preserved in the copy; they aren't converted from accessors to writables.
- * Arrays, objects, and class instances are supported for mutation. Inside the callback, these have the correct identities when passed to `Array.isArray` or `instanceof`.
- * Usable Flow types are provided. (The first type parameter must be a non-read-only variant of the input type.)
-
-For usage, please see [the tests](test.js).
+ * Properties' data/access descriptors are preserved in the copy.
+ * Extensibility information is preserved in the copy. This means that sealed objects come back sealed and frozen objects come back frozen.
+ * Class instances are supported for mutation.
+ * Usable Flow types are provided.
 
 No cows were harmed in the making of this code.
 
+## API
+
+### mutate<T>(value: T): Mutator<T>
+
+Returns a `Mutator` that can be used to modify `value` (which is assumed to be immutable).
+
+To update sub-objects, you'll want to use the `get` method below.
+
+### Mutator.result
+
+The current working copy of the `value` passed to `mutate`, or original value if no changes were made.
+
+You can read `result`, but don't modify it. That would defeat the purpose of `mutate-cow` and likely cause weird things to happen.
+
+```JavaScript
+const orig = {};
+
+const m = mutate(orig);
+
+m.result === orig; // true
+
+const newObj = {};
+
+m.set(newObj);
+
+m.result === newObj; // true
+```
+
+### Mutator.final()
+
+Finalizes the mutator: adds back any data/access descriptors that were present on the original object, cleans up the internal state, and returns `result`.
+
+You can't use the mutator again after calling this.
+
+```JavaScript
+const mFoo = mutate({bar: 1});
+const mBar = mFoo.get('bar');
+
+mFoo.final(); // {bar: 1}
+
+mBar.set(1); // error
+mFoo.get('bar'); // error
+```
+
+### Mutator.get(property)
+
+Returns a child mutator that corresponds to `value[property]`. This is also a `Mutator` instance, though it remembers its parent. Updating a child via `set` or `run` also updates the parent.
+
+```JavaScript
+const mFoo = mutate({bar: 1});
+const mBar = mFoo.get('bar');
+
+mBar.final() === 1; // true
+mFoo.final().bar === 1; // true
+```
+
+### Mutator.set(property)
+
+Updates the value we're pointing to. Returns `this.final()`, so can only be called once.
+
+```JavaScript
+const o = {bar: 1};
+const m = mutate(o);
+
+m.get('bar').set(2); // 2
+m.final().bar === 2; // true
+
+o.bar === 1; // still true
+```
+
+### Mutator.run(callback)
+
+Does a shallow clone of the source value and runs the given callback on it. Returns `this.final()`, so can only be called once.
+
+```JavaScript
+const o = [1];
+
+mutate(o).run(x => { x.push(2) }); // [1, 2]
+
+o.length === 1; // still true
+```
+
+Do not perform deep updates inside the callback:
+
+```JavaScript
+const o = [{}];
+
+const newo = mutate(o).run(x => {
+  // NO. This defeats the purpose of mutate-cow.
+  x[0].foo = 1;
+});
+```
+
+Generally your Flow object types should be read-only to prevent this sort of misuse.
+
 ## Caveats
 
-This module works for mutating plain objects, arrays, and user-defined classes. (Note, however, that class constructors are not called.) Other native, built-in object types are not supported for a variety reasons. For one, many of them can't be proxied correctly, because their methods aren't generic; i.e., they can't be called with a `this` value that's not of the exact object type. Another reason is that we'd need specialized code to clone each different type; they can't be created with `Object.create`, as the constructor must be called to define internal slots. We'd need further specialized code to intercept any methods that can write to any internal slots. That's just not feasible.
-
-Note that there's nothing wrong with creating *new* instances of these objects inside the callback and assigning them to properties. It's perfectly fine to clone them yourself. What's unsupported is mutating any existing objects of these types.
-
-```JavaScript
-const orig = {
-  date: new Date(),
-  string: new String('hello'),
-};
-
-mutate(orig, copy => {
-  // These are unsupported, and will throw TypeErrors.
-  copy.date.setFullYear(1999);
-  copy.date.customProp = 'y';
-  copy.string[0] = 'y';
-
-  // These are fine.
-  const newDate = new Date(orig.date.valueOf());
-  newDate.setFullYear(1999);
-  newDate.customProp = 'y';
-  copy.date = newDate;
-  copy.string = new String('yello');
-});
-```
-
-### Unwrapping proxied values
-
-When you read from a property inside the callback, a `Proxy` is returned that can read from the source object (or working copy) and write to the copy. You may then wonder what happens if you perform `copy.foo = copy.bar`: will this assign a `Proxy`, or the value it targets? The answer in this case is the value it targets, because `mutate-cow` automatically unwraps proxied values on the RHS of assignments. However, suppose you did something like this instead:
-
-```JavaScript
-const orig = {foo: {value: 1}, bar: {value: 2}};
-
-const copy = mutate(orig, copy => {
-  // this will assign an object resembling {value: Proxy}!
-  copy.foo = {...copy.bar};
-});
-```
-
-In the above case, `copy.bar.value` is a `Proxy`, but `{...copy.bar}` (the assigned object) is not. `mutate-cow` doesn't *deeply* unwrap values, so you have to do it yourself in this case:
-
-```JavaScript
-const orig = {foo: {value: 1}, bar: {value: 2}};
-
-const copy = mutate(orig, (copy, unwrap) => {
-  copy.foo = {...unwrap(copy.bar)};
-});
-```
-
-If you don't do this, accessing `copy.foo.value` outside the callback will throw an error, because the `Proxy` will be revoked! An alternative which avoids this situation entirely is to just reference the source object where possible:
-
-```JavaScript
-const orig = {foo: {value: 1}, bar: {value: 2}};
-
-const copy = mutate(orig, copy => {
-  copy.foo = {...orig.bar};
-});
-```
-
-In fact, all `unwrap` does is return the underlying data from the source, or the working copy where you've made changes.
+This module works for mutating plain objects, arrays, and user-defined classes. (Note, however, that class constructors are not called.) Other native, built-in object types (e.g. `Date`) are not supported, mainly because there's not a consistent way to clone them (their constructors generally need to be called to define intenral slots).
