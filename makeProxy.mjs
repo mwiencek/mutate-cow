@@ -5,8 +5,8 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import canClone from './canClone';
-import clone from './clone';
+import canClone from './canClone.mjs';
+import clone from './clone.mjs';
 import {
   CANNOT_CLONE_ERROR,
   CONFIGURABLE_AND_WRITABLE,
@@ -14,9 +14,9 @@ import {
   STATUS_CHANGED,
   STATUS_NONE,
   STATUS_REVOKED,
-} from './constants';
-import isObject from './isObject';
-import unwrap from './unwrap';
+} from './constants.mjs';
+import isObject from './isObject.mjs';
+import unwrap from './unwrap.mjs';
 
 export function Context(root, parent, prop) {
   this.root = root || this;

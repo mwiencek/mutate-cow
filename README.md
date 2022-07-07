@@ -25,7 +25,7 @@ While this doesn't appear to have been an original idea, I believe `mutate-cow` 
  * Arrays, objects, and class instances are supported for mutation. Inside the callback, these have the correct identities when passed to `Array.isArray` or `instanceof`.
  * Usable Flow types are provided. (The first type parameter must be a non-read-only variant of the input type.)
 
-For usage, please see [the tests](test.js).
+For usage, please see [the tests](test.mjs).
 
 No cows were harmed in the making of this code.
 

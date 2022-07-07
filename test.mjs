@@ -6,8 +6,8 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import mutate from './main';
-import {PROXY_UNWRAP_KEY} from './constants';
+import mutate from './index.mjs';
+import {PROXY_UNWRAP_KEY} from './constants.mjs';
 
 function assert(truth, message) {
   if (!truth) {
