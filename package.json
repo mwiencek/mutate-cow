@@ -15,7 +15,7 @@
   "repository": "github:mwiencek/mutate-cow",
   "devDependencies": {
     "benchmark": "2.1.4",
-    "flow-bin": "0.126.1"
+    "flow-bin": "0.182.0"
   },
   "sideEffects": false,
   "scripts": {
