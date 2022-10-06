@@ -1,5 +1,5 @@
 /*
- * @flow
+ * @flow strict
  * Copyright (c) 2019 Michael Wiencek
  *
  * This source code is licensed under the MIT license. A copy can be found

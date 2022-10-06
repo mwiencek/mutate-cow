@@ -1,4 +1,4 @@
-// @flow
+// @flow strict
 
 declare function mutate<Rw, Ro>(
   source: Ro,
