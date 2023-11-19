@@ -9,9 +9,9 @@
 import mutate from './index.mjs';
 import {PROXY_UNWRAP_KEY} from './constants.mjs';
 
-function assert(truth, message) {
+function assert(truth/*: mixed */, message/*:: ?: string */)/*: void */ {
   if (!truth) {
-    throw new Error('assertion failed');
+    throw new Error(message ?? 'assertion failed');
   }
 }
 
@@ -156,7 +156,11 @@ const people/*: ReadOnlyPeople */ = [alice, frozenBob];
 
 { // object delete
 
-  const orig = {};
+  const orig/*: {
+    foo?: number,
+    bar?: number,
+    baz?: number,
+  } */ = {};
 
   Object.defineProperty(orig, 'foo', {
     configurable: false,
@@ -481,12 +485,17 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
 { // getters and setters
 
-  const orig = {
+  const orig/*: {
+    object: {foo?: number} | null,
+    value: {foo?: number},
+  } */ = {
     object: null,
     get value()/*: {foo?: number} */{
+      // $FlowIgnore[object-this-reference]
       return (this.object = this.object || {});
     },
-    set value(x/*: {foo?: number} */)/*: void */{
+    set value(x/*: {foo?: number} */)/*: void */ {
+      // $FlowIgnore[object-this-reference]
       this.object = x;
     },
   };
@@ -516,7 +525,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
 { // functions
 
-  const origFunc = function () {
+  const origFunc = function (/*:: this: {|+func: () => string, +value: string|} */) {
     return this.value;
   };
 
@@ -525,7 +534,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
     value: 'abc',
   };
 
-  const copy = mutate/*:: <{func: (() => string) & {prop?: boolean}, value: string}, _>*/(orig, (copy) => {
+  const copy = mutate/*:: <{func: (() => string) & {prop?: boolean, ...}, value: string}, _>*/(orig, (copy) => {
     assert(typeof copy.func === 'function');
     assert(copy.func instanceof Function);
     assert(copy.func() === 'abc');
@@ -623,7 +632,7 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 
   let error = null;
   try {
-    mutate(new FunDate(), (copy) => {
+    mutate(new FunDate(), (copy/*: FunDate */) => {
       copy.setFullYear(1999);
     });
   } catch (e) {
@@ -633,30 +642,46 @@ type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
 }
 
 /*::
-type Cyclic = {x: Cyclic}
+type Cyclic = {x: Cyclic | null}
 */
 
 { // cyclic references
 
-  const object/*: Cyclic */ = {};
+  // $FlowIgnore[prop-missing]
+  const object/*: Cyclic */ = {x: null};
   object.x = object;
 
-  const newObject = mutate(object, newObject => {
-    newObject.x.x = null;
+  const newObject = mutate(object, (newObject/*: Cyclic */) => {
+    if (newObject.x) {
+      newObject.x.x = null;
+    }
   });
 
-  assert(object.x.x.x === object);
-  assert(newObject.x.x === null);
+  assert((object.x?.x?.x) === object);
+  assert((newObject.x?.x) === null);
 }
 
 { // using a copy reference in an object spread
 
-  const orig/*: any */ = {
+  /*::
+  type OrigF00 = {
+    bar: {
+      baz: number,
+    },
+    func: (this: OrigF00) => OrigF00,
+  };
+
+  type OrigZYX = {
+    foo: OrigF00,
+  }
+  */
+
+  const orig/*: OrigZYX */ = {
     foo: {
       bar: {
         baz: 1,
       },
-      func: function () {
+      func: function (/*:: this: OrigF00 */) {
         return this;
       },
     },
@@ -693,15 +718,20 @@ type Cyclic = {x: Cyclic}
 
 { // construct
 
-  function Cls() {
-    this.foo = 1;
+  class Cls {
+    /*::
+    foo: number;
+    */
+    constructor() {
+      this.foo = 1;
+    }
   }
 
   const orig = {
     Cls,
   };
 
-  const copy = mutate(orig, (copy) => {
+  const copy = mutate(orig, (copy/*: {Cls: Class<Cls>} */) => {
     const c = new copy.Cls();
     assert(c instanceof Cls);
     assert(c.foo === 1);
@@ -716,7 +746,7 @@ type Cyclic = {x: Cyclic}
   // non-writable, unless there exists a corresponding non-configurable,
   // non-writable own property on the target object," i.e. our fake proxy
   // target.
-  const copy = mutate([0], copy => {
+  const copy = mutate([0], (copy/*: Array<number> & {error: boolean, ...} */) => {
     Object.freeze(copy);
 
     const desc = Object.getOwnPropertyDescriptor(copy, 'length');

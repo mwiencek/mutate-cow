@@ -14,12 +14,10 @@
   "repository": "github:mwiencek/mutate-cow",
   "devDependencies": {
     "benchmark": "2.1.4",
-    "flow-bin": "0.182.0"
+    "flow-bin": "0.222.0"
   },
   "sideEffects": false,
   "scripts": {
     "test": "node test.mjs"
-  },
-  "dependencies": {},
-  "peerDependencies": {}
+  }
 }
