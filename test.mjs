@@ -1,19 +1,25 @@
 /*
  * @flow strict
- * Copyright (c) 2019 Michael Wiencek
+ * Copyright (c) 2023 Michael Wiencek
  *
  * This source code is licensed under the MIT license. A copy can be found
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import mutate from './index.mjs';
-import {PROXY_UNWRAP_KEY} from './constants.mjs';
+// $FlowIssue[cannot-resolve-module]
+import assert from 'node:assert';
+// $FlowIssue[cannot-resolve-module]
+import test from 'node:test';
 
-function assert(truth/*: mixed */, message/*:: ?: string */)/*: void */ {
-  if (!truth) {
-    throw new Error(message ?? 'assertion failed');
-  }
-}
+import mutate from './index.mjs';
+
+/*:: import * as types from './index.mjs'; */
+
+const ERROR_REVOKED =
+  /^Error: This context has been revoked and can no longer be used\.$/;
+
+const ERROR_CLONE =
+  /^Error: Only plain objects, arrays, and class instances can be cloned\./;
 
 /*::
 type DatePeriod = {
@@ -22,6 +28,8 @@ type DatePeriod = {
 
 type ReadOnlyDatePeriod = {
   +year: number,
+  +month?: number,
+  +day?: number,
 };
 
 type Person = {
@@ -40,740 +48,668 @@ type People = Array<Person>;
 type ReadOnlyPeople = $ReadOnlyArray<ReadOnlyPerson>;
 */
 
-const aliceBirthDate = {year: 2100};
-const aliceDeathDate = {year: 2330};
+const aliceBirthDate = Object.freeze({year: 2100});
+const aliceDeathDate = Object.freeze({year: 2330});
 
-const alice /*: ReadOnlyPerson */ = {
+const alice /*: ReadOnlyPerson */ = Object.freeze({
   name: 'Alice',
   birth_date: aliceBirthDate,
   death_date: aliceDeathDate,
-};
-
-const frozenBob /*: ReadOnlyPerson */ = Object.freeze({
-  name: 'Bob',
-  birth_date: Object.freeze({year: 2450}),
-  death_date: Object.freeze({year: 2988}),
 });
 
-{ // object not copied if no writes are made
+const people/*: ReadOnlyPeople */ = Object.freeze([alice, alice]);
 
-  const copy = mutate/*:: <Person, _>*/(alice, (copy) => {
-    assert('name' in copy);
-    assert('birth_date' in copy);
-    assert('death_date' in copy);
-    assert('year' in copy.birth_date);
-    assert('year' in copy.death_date);
+const unsupportedProperties/*: {
+  _value: string,
+  +getValue: string,
+  -setValue: string,
+  +func: () => string,
+  +numberObject: Number,
+  +stringObject: String,
+} */ = {
+  _value: '',
+  get getValue()/*: string */ {
+    return unsupportedProperties._value;
+  },
+  set setValue(x/*: string */) {
+    unsupportedProperties._value = x;
+  },
+  func: () => '',
+  numberObject: new Number(1),
+  stringObject: new String(''),
+};
 
-    copy.name;
-    copy.birth_date.year;
-    copy.death_date.year;
-
-    const properties = Object.getOwnPropertyNames(copy).sort();
-    assert(properties.length === 3);
-    assert(properties[0] === 'birth_date');
-    assert(properties[1] === 'death_date');
-    assert(properties[2] === 'name');
+test('mutate', async (t) => {
+  await t.test('throws if you pass null', async (t) => {
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate(null);
+    }, ERROR_CLONE);
   });
 
-  assert(alice === copy);
-}
-
-{
-  const copy = mutate/*:: <Person, _>*/(alice, (copy) => {
-    assert(copy.birth_date.year === 2100);
-    copy.birth_date.year = 1988;
-    assert(copy.birth_date.year === 1988);
+  await t.test('throws if you pass a derived built-in', async (t) => {
+    class FunDate extends Date {}
+    assert.throws(() => {
+      mutate(new FunDate());
+    }, ERROR_CLONE);
   });
 
-  assert(copy !== alice);
-  assert(copy.birth_date !== alice.birth_date);
-  assert(copy.birth_date.year === 1988);
-  assert(copy.death_date === aliceDeathDate);
-
-  assert(alice.name === 'Alice');
-  assert(alice.birth_date === aliceBirthDate);
-  assert(alice.birth_date.year === 2100);
-  assert(alice.death_date === aliceDeathDate);
-  assert(alice.death_date.year === 2330);
-}
-
-{
-  let copy = mutate/*:: <Person, _>*/(frozenBob, (copy) => {
-    copy.name;
-    copy.birth_date.year;
-    copy.death_date.year;
-  });
-
-  assert(copy === frozenBob);
-
-  copy = mutate/*:: <Person, _>*/(frozenBob, (copy) => {
-    assert(copy.birth_date.year === 2450);
-    copy.birth_date.year = 1988;
-    assert(copy.birth_date.year === 1988);
-  });
-
-  assert(copy !== frozenBob);
-  // frozenness is preserved
-  assert(Object.isFrozen(copy));
-  assert(copy.birth_date !== frozenBob.birth_date);
-  assert(Object.isFrozen(copy.birth_date));
-  assert(copy.birth_date.year === 1988);
-  assert(copy.death_date === frozenBob.death_date);
-}
-
-const people/*: ReadOnlyPeople */ = [alice, frozenBob];
-
-{ // object not copied if no writes are made
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    copy[0].death_date.year;
-    copy[1].death_date.year;
-  });
-
-  assert(people === copy);
-  assert(people[0] === copy[0]);
-  assert(people[1] === copy[1]);
-  assert(people[0].birth_date === copy[0].birth_date);
-  assert(people[1].death_date === copy[1].death_date);
-}
-
-{ // object not copied if assignments don't change the underlying data
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    copy[0] = copy[0];
-    copy[0].birth_date = copy[0].birth_date;
-    copy[0].birth_date.year = copy[0].birth_date.year;
-    copy[0].birth_date.year = 2100;
-  });
-
-  assert(people === copy);
-  assert(people[0] === copy[0]);
-  assert(people[1] === copy[1]);
-  assert(people[0].birth_date === copy[0].birth_date);
-  assert(people[1].death_date === copy[1].death_date);
-  assert(copy[0].birth_date.year === 2100);
-}
-
-{ // object delete
-
-  const orig/*: {
-    foo?: number,
-    bar?: number,
-    baz?: number,
-  } */ = {};
-
-  Object.defineProperty(orig, 'foo', {
-    configurable: false,
-    enumerable: true,
-    writable: true,
-    value: 1,
-  });
-
-  Object.defineProperty(orig, 'bar', {
-    configurable: false,
-    enumerable: true,
-    writable: true,
-    value: 2,
-  });
-
-  Object.defineProperty(orig, 'baz', {
-    configurable: true,
-    enumerable: true,
-    writable: false,
-    value: 3,
-  });
-
-  const copy = mutate/*:: <{foo?: number, bar?: number, baz?: number}, _>*/(orig, (copy) => {
-    delete copy.foo;
-    delete copy.bar;
-    delete copy.baz;
-  });
-
-  assert(orig.foo === 1);
-  assert(orig.bar === 2);
-  assert(orig.baz === 3);
-  assert(!copy.hasOwnProperty('foo'));
-  assert(!copy.hasOwnProperty('bar'));
-  assert(!copy.hasOwnProperty('baz'));
-}
-
-{ // overwriting a cloned object
-
-  const orig = {foo: {bar: 1}};
-  const bar3 = {bar: 3};
-
-  const copy = mutate/*:: <{foo: {bar: number}}, _>*/(orig, (copy) => {
-    copy.foo.bar = 2;
-    assert(copy.foo.bar === 2);
-    copy.foo = bar3;
-    assert(copy.foo.bar === 3);
-    copy.foo.bar = 4;
-    assert(copy.foo.bar === 4);
-    assert(bar3.bar === 3);
-  });
-
-  assert(orig.foo.bar === 1);
-  assert(copy.foo.bar === 4);
-}
-
-{ // defineProperty
-
-  const orig/*: {+foo?: number, bar?: number} */ = {};
-
-  Object.defineProperty(orig, 'bar', {
-    configurable: false,
-    enumerable: true,
-    value: 0,
-    writable: false,
-  });
-
-  const copy = mutate/*:: <{foo?: number, bar?: number}, _>*/(orig, (copy) => {
-    let desc = Reflect.getOwnPropertyDescriptor(copy, 'bar');
-    // read-only properties are configurable and writable inside `mutate`
-    assert(desc && desc.configurable);
-    assert(desc && desc.writable);
-    copy.bar = 1;
-
-    // read-only properties defined inside `mutate` stay read-only
-    Object.defineProperty(copy, 'foo', {
-      configurable: false,
-      enumerable: true,
-      value: 1,
-      writable: false,
-    });
-
-    desc = Reflect.getOwnPropertyDescriptor(copy, 'foo');
-    let error;
-    try {
-      copy.foo = 2;
-    } catch (e) {
-      error = e;
+  await t.test('throws if you pass a generator', async (t) => {
+    function* makeGenerator() {
+      yield 1;
     }
-    assert(error && error.message.includes('read only property'));
+    assert.throws(() => {
+      mutate(makeGenerator());
+    }, ERROR_CLONE);
+  });
+});
+
+test('read', async (t) => {
+  await t.test('returns the original value if no changes were made', (t) => {
+    assert.strictEqual(mutate(people).read()[0].birth_date.year, 2100);
   });
 
-  assert(!orig.hasOwnProperty('foo'));
-  assert(orig.bar === 0);
-  assert(copy.bar === 1);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'bar').configurable === false);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'bar').writable === false);
-  assert(copy.foo === 1);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'foo').configurable === false);
-  assert(Reflect.getOwnPropertyDescriptor(copy, 'foo').writable === false);
-}
-
-{ // array push
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    assert(Array.isArray(copy));
-    copy.push((alice/*: any */));
+  await t.test('returns the current changes', (t) => {
+    const ctx = mutate(people);
+    ctx.set(0, 'birth_date', 'year', 1988);
+    assert.strictEqual(ctx.read()[0].birth_date.year, 1988);
   });
 
-  assert(copy !== people);
-  assert(people.length === 2);
-  assert(copy.length === 3);
-  assert(copy[2] === alice);
-}
+  await t.test('throws if the context is revoked', (t) => {
+    const ctx = mutate(alice);
+    ctx.revoke();
+    assert.throws(() => {
+      ctx.read();
+    }, ERROR_REVOKED);
+  });
+});
 
-{ // array delete
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    delete copy[1];
+test('write', async (t) => {
+  await t.test('forces a copy even if no changes are made', (t) => {
+    const copy = mutate(alice).update(ctx => ctx.write()).final();
+    assert.notStrictEqual(copy, alice);
   });
 
-  assert(copy !== people);
-  assert(copy.length === 2);
-  assert(copy[0] === alice);
-  assert(copy[1] === undefined);
-}
-
-{ // splice
-  let copy = mutate/*:: <People, _>*/(people, (copy) => {
-    assert(Array.isArray(copy));
-    copy.splice(0, 1);
+  await t.test('returns the current changes', (t) => {
+    const ctx = mutate(people);
+    ctx.set(0, 'birth_date', 'year', 1988);
+    assert.strictEqual(ctx.write()[0].birth_date.year, 1988);
   });
 
-  assert(copy !== people);
-  assert(people.length === 2);
-  assert(copy.length === 1);
-  assert(copy[0] === frozenBob);
-}
-
-{ // objects are copied only once
-
-  const copy = mutate/*:: <People, _>*/(people, (copy) => {
-    const proxy1 = copy[0].death_date;
-    proxy1.year = 5000;
-    assert(proxy1 === copy[0].death_date); // proxy is unchanged
-    const ref1 = proxy1[PROXY_UNWRAP_KEY];
-    assert(people[0].death_date !== ref1); // reference was copied
-    assert(people[0].death_date.year === 2330);
-    assert(proxy1.year === 5000);
-    proxy1.year  = 4000;
-    const ref2 = copy[0].death_date[PROXY_UNWRAP_KEY];
-    assert(ref1 === ref2); // reference was copied only once
-    assert(ref1.year === 4000);
-    proxy1.year = 3000;
+  await t.test('allows pushing array values', (t) => {
+    const copy = mutate(people)
+      .update((ctx) => ctx.write().push(alice))
+      .final();
+    assert.strictEqual(copy[2], alice);
   });
 
-  assert(copy[0] !== alice);
-  assert(copy[0].birth_date === alice.birth_date);
-  assert(copy[0].death_date !== aliceDeathDate);
-  assert(copy[0].death_date.year === 3000);
-  assert(copy[1] === frozenBob);
-}
-
-/*::
-type WeirdArray = {|+weird: boolean|} & $ReadOnlyArray<number>;
-*/
-
-{ // non-index array properties
-
-  const weird/*: WeirdArray */ = (Object.defineProperty([1, 2, 3], ('weird'/*: any */), {
-    configurable: false,
-    enumerable: true,
-    value: true,
-    writable: false,
-  })/*: any */);
-
-  const weirdCopy = mutate/*:: <{|weird: boolean|} & Array<number>, _>*/(weird, (copy) => {
-    copy.push(666);
-    assert(copy.weird === true, 'weird');
-    copy.weird = false;
+  await t.test('can be called on child primitives', (t) => {
+    const ctx = mutate(alice);
+    ctx.get('birth_date', 'year').write();
+    // $FlowIgnore[cannot-write]
+    ctx.read().birth_date.year = 1988;
+    const copy = ctx.final();
+    assert.strictEqual(copy.birth_date.year, 1988);
   });
 
-  assert(weird !== weirdCopy, 'reference is changed');
-  assert(weirdCopy.length === 4, 'item was added');
-  assert(weirdCopy[3], 'added item is 666');
-  assert(weird.length === 3, 'original reference is unchanged');
-  assert(weird.weird === true, 'original reference is unchanged');
-  assert(weirdCopy.weird === false, 'not weird');
-}
+  await t.test('throws if the context is revoked', (t) => {
+    const ctx = mutate(people);
+    ctx.revoke();
+    assert.throws(() => {
+      ctx.write();
+    }, ERROR_REVOKED);
+  });
+});
 
-{ // array property descriptors
-
-  const descArray/*: {+value: Array<number>} */ = {value: [1, 2, 3]};
-
-  Object.defineProperty(descArray.value, 1, {
-    configurable: false,
-    enumerable: true,
-    value: 2,
-    writable: false,
+test('get', async (t) => {
+  await t.test('returns `this` if no arguments are passed', (t) => {
+    const ctx = mutate(alice);
+    assert.strictEqual(ctx.get(), ctx);
   });
 
-  const descArrayCopy = mutate/*:: <{value: Array<number>}, _>*/(descArray, (copy) => {
-    let desc = Object.getOwnPropertyDescriptor(copy.value, 'length');
-    assert(desc && desc.configurable === false);
-    assert(desc && desc.writable === true);
-    copy.value[1] = 0;
-    desc = Object.getOwnPropertyDescriptor(copy.value, 'length');
-    assert(desc && desc.configurable === false);
-    assert(desc && desc.writable === true);
+  await t.test('works with one prop', (t) => {
+    assert.strictEqual(mutate(alice).get('birth_date').read(), alice.birth_date);
   });
 
-  assert(descArray.value[1] === 2);
-
-  const newDesc1 = Object.getOwnPropertyDescriptor(descArrayCopy.value, 1);
-  assert(!(newDesc1/*: any */).configurable);
-  assert((newDesc1/*: any */).enumerable);
-  assert((newDesc1/*: any */).value === 0);
-  assert(!(newDesc1/*: any */).writable);
-}
-
-/*::
-type SharedFoo = {foo: string};
-*/
-
-{ // shared reference within one object
-
-  const shared/*: $ReadOnly<SharedFoo> */ = {foo: ''};
-
-  const object = {
-    prop1: shared,
-    prop2: shared,
-  };
-
-  const copy = mutate/*:: <{prop1: SharedFoo, prop2: SharedFoo}, _>*/(object, (copy) => {
-    copy.prop1.foo = 'abc';
-    assert(copy.prop1.foo === 'abc');
-    assert(copy.prop2.foo === '');
-    const ref = copy.prop1;
-    assert(shared.foo === '');
-    copy.prop2.foo = '123';
-    assert(copy.prop1.foo === 'abc');
-    assert(copy.prop2.foo === '123');
-    assert(copy.prop1[PROXY_UNWRAP_KEY] === ref[PROXY_UNWRAP_KEY]); // copied only once
-    assert(shared.foo === '');
+  await t.test('works with two props', (t) => {
+    assert.strictEqual(mutate(alice).get('birth_date', 'year').read(), alice.birth_date.year);
   });
 
-  assert(copy.prop1.foo === 'abc');
-  assert(copy.prop2.foo === '123');
-  assert(shared.foo === '');
-}
-
-/*::
-type NestedShared = {foo: {foo: Array<number>}};
-type ReadOnlyNestedShared = {+foo: {+foo: $ReadOnlyArray<number>}};
-*/
-
-{ // nested calls + shared reference across two objects
-
-  const shared/*: {+foo: $ReadOnlyArray<number>} */ = {foo: [1]};
-  const objectA/*: ReadOnlyNestedShared */ = {foo: shared};
-  const objectB/*: ReadOnlyNestedShared */ = {foo: shared};
-
-  const objectACopy = mutate/*:: <NestedShared, _>*/(objectA, (copyA) => {
-    const objectBCopy = mutate/*:: <NestedShared, _>*/(objectB, (copyB) => {
-      copyA.foo.foo[0] = 2;
-      copyB.foo.foo[0] = 3;
-      assert(copyA.foo.foo[0] === 2);
-      assert(copyB.foo.foo[0] === 3);
-    });
-    assert(copyA.foo.foo[0] === 2);
-    assert(objectBCopy.foo.foo[0] === 3);
+  await t.test('chains with other get calls', (t) => {
+    assert.strictEqual(mutate(alice).get('birth_date').get('year').read(), alice.birth_date.year);
   });
 
-  assert(objectACopy.foo.foo[0] === 2);
-}
-
-{ // nested call on proxied object
-
-  const source/*: {+foo: {+bar: number}} */ = {foo: {bar: 0}};
-
-  const copy = mutate/*:: <{foo: {bar: number}}, _>*/(source, copy => {
-    copy.foo.bar++;
-
-    copy.foo = mutate/*:: <{bar: number}, _>*/(copy.foo, fooCopy => {
-      copy.foo.bar++; // overridden
-      fooCopy.bar++;
-      copy.foo.bar++; // overridden
-    });
-
-    copy.foo.bar++;
+  await t.test('throws if the context is revoked', (t) => {
+    const ctx = mutate(alice);
+    ctx.revoke();
+    assert.throws(() => {
+      ctx.get('birth_date');
+    }, ERROR_REVOKED);
   });
 
-  assert(copy.foo.bar === 3);
-}
+  await t.test('throws on getters and setters', (t) => {
+    const ctx = mutate(unsupportedProperties);
 
-{ // classes
+    assert.throws(() => {
+      ctx.get('getValue');
+    }, /^Error: Getters are unsupported\.$/);
 
-  class NiceBase {}
+    assert.throws(() => {
+      ctx.get('setValue');
+    }, /^Error: Setters are unsupported\.$/);
+  });
+});
 
-  class NiceClass extends NiceBase {
+test('set', async (t) => {
+  await t.test('works directly on the root (one argument)', (t) => {
+    let copy = mutate(alice)
+      .set({...alice, birth_date: {...alice.birth_date, year: 1988}})
+      .final();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+    copy = mutate(alice)
+      .set(alice)
+      .set('birth_date', 'year', 1999)
+      .final();
+    assert.strictEqual(copy.birth_date.year, 1999);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
+
+  await t.test('works directly on a child (one argument)', (t) => {
+    let copy = mutate(alice)
+      .get('birth_date')
+      .set({...alice.birth_date, year: 1988})
+      .finalRoot();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+    copy = mutate(alice)
+      .get('birth_date', 'year')
+      .set(1999)
+      .finalRoot();
+    assert.strictEqual(copy.birth_date.year, 1999);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
+
+  await t.test('works with one prop', (t) => {
+    const copy = mutate(alice)
+      .get('birth_date')
+      .set('year', 1988)
+      .finalRoot();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
+
+  await t.test('works with two props', (t) => {
+    const copy = mutate(alice)
+      .set('birth_date', 'year', 1988)
+      .final();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
+
+  await t.test('chains with other set calls', (t) => {
+    let copy = mutate(alice)
+      .set('birth_date', 'year', 1988)
+      .set('death_date', 'year', 2088)
+      .final();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date.year, 2088);
+    copy = mutate(alice)
+      .get('birth_date')
+      .set('year', 1990)
+      .set('month', 10)
+      .set('day', 21)
+      .parent()
+      .get('death_date')
+      .set('year', 2090)
+      .set('month', 11)
+      .set('day', 30)
+      .parent()
+      .final();
+    assert.deepStrictEqual(
+      copy.birth_date,
+      {year: 1990, month: 10, day: 21},
+    );
+    assert.deepStrictEqual(
+      copy.death_date,
+      {year: 2090, month: 11, day: 30},
+    );
+  });
+
+  await t.test('returns the same object if no changes are made', (t) => {
+    const copy1 = mutate(alice)
+      .set('name', alice.name)
+      .set('birth_date', alice.birth_date)
+      .set('death_date', alice.death_date)
+      .set('birth_date', 'year', alice.birth_date.year)
+      .set('death_date', 'year', alice.death_date.year)
+      .final();
+    assert.strictEqual(alice, copy1);
+    const copy2 = mutate(people)
+      .set(0, people[0])
+      .set(0, 'name', people[0].name)
+      .set(0, 'birth_date', people[0].birth_date)
+      .set(0, 'death_date', people[0].death_date)
+      .set(0, 'birth_date', 'year', people[0].birth_date.year)
+      .set(0, 'death_date', 'year', people[0].death_date.year)
+      .final();
+    assert.strictEqual(people, copy2);
+  });
+
+  await t.test('clones the object only once', async (t) => {
+    const ctx = mutate(alice);
+    ctx.get('birth_date').set('year', 1987);
+    const newBirthDate1 = ctx.read().birth_date;
+    ctx.get('birth_date').set('year', 1988);
+    const newBirthDate2 = ctx.read().birth_date;
+    assert.strictEqual(newBirthDate1, newBirthDate2);
+  });
+
+  await t.test('throws if the context is revoked', (t) => {
+    const ctx = mutate(alice);
+    ctx.revoke();
+    assert.throws(() => {
+      ctx.set(alice);
+    }, ERROR_REVOKED);
+  });
+
+  await t.test('throws if called on a function', async (t) => {
+    const ctx = mutate(unsupportedProperties);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('func').set('error', null);
+    }, ERROR_CLONE);
+  });
+
+  await t.test('throws if called on a number object', async (t) => {
+    const ctx = mutate(unsupportedProperties);
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('numberObject').set('error', null);
+    }, ERROR_CLONE);
+  });
+
+  await t.test('can set number objects directly', async (t) => {
+    const copy = mutate(unsupportedProperties)
+      .set('numberObject', new Number(2))
+      .final();
+    assert.strictEqual(+copy.numberObject, 2);
+  });
+
+  await t.test('throws if called on a string object', async (t) => {
+    const ctx = mutate(unsupportedProperties);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('stringObject').set('error', null);
+    }, ERROR_CLONE);
+  });
+
+  await t.test('can set string objects directly', async (t) => {
+    const copy = mutate(unsupportedProperties)
+      .set('stringObject', new String('huh'))
+      .final();
+    assert.strictEqual(String(copy.stringObject), 'huh');
+  });
+
+  await t.test('works on class instances', async (t) => {
+    class NiceBase {}
+    class NiceClass extends NiceBase {
+      /*::
+      value: string;
+      */
+      constructor() {
+        super();
+        this.value = 'nice';
+      }
+    }
+    const orig = new NiceClass();
+    const copy = mutate(orig)
+      .set('value', 'naughty')
+      .final();
+    assert.ok(copy instanceof NiceClass);
+    assert.ok(copy instanceof NiceBase);
+    assert.strictEqual(copy.value, 'naughty');
+    assert.strictEqual(orig.value, 'nice');
+  });
+
+  await t.test('can add custom properties to arrays', (t) => {
+    const copy = mutate(people)
+      // $FlowIgnore[incompatible-call]
+      .set('customProp', 10)
+      .final();
+    // $FlowIgnore[prop-missing]
+    assert.strictEqual(copy.customProp, 10);
+  });
+
+  await t.test('works on cyclic references', (t) => {
     /*::
-    value: string;
+    type Cyclic = {x: Cyclic | null}
     */
-
-    constructor() {
-      super();
-      this.value = 'nice';
-    }
-  }
-
-  const instance = new NiceClass();
-
-  const copy = mutate/*:: <NiceClass, _>*/(instance, (copy) => {
-    assert(copy instanceof NiceClass);
-    copy.value = 'naughty';
+    const orig/*: Cyclic */ = {x: null};
+    orig.x = orig;
+    Object.freeze(orig);
+    const copy1 = mutate(orig)
+      .get('x')
+      .set('x', null)
+      .parent()
+      .final();
+    assert.strictEqual((copy1.x?.x), null);
+    const copy2 = mutate(orig)
+      // $FlowIgnore[incompatible-call]
+      .set('x', 'x', 'x', null)
+      .final();
+    assert.strictEqual((copy2.x?.x?.x), null);
   });
 
-  assert(instance !== copy);
-  assert(copy instanceof NiceClass);
-  assert(copy.value === 'naughty');
-  assert(instance.value === 'nice');
-}
+  await t.test('propagates changes to parent contexts', (t) => {
+    const ctx = mutate/*:: <ReadOnlyPerson> */(alice);
+    const birthDateContext1 = ctx.get('birth_date');
+    const yearContext1 = birthDateContext1.get('year');
 
-{ // getters and setters
+    birthDateContext1.set('year', 1988);
+    // Should propagate to birthDateContext1 and yearContext1
+    ctx.set('birth_date', {year: 2008});
 
-  const orig/*: {
-    object: {foo?: number} | null,
-    value: {foo?: number},
-  } */ = {
-    object: null,
-    get value()/*: {foo?: number} */{
-      // $FlowIgnore[object-this-reference]
-      return (this.object = this.object || {});
-    },
-    set value(x/*: {foo?: number} */)/*: void */ {
-      // $FlowIgnore[object-this-reference]
-      this.object = x;
-    },
-  };
-
-  const copy1 = mutate/*:: <typeof orig, _>*/(orig, (copy) => {
-    copy.value.foo = 1;
+    assert.strictEqual(ctx.get('birth_date').read().year, 2008);
+    assert.strictEqual(birthDateContext1.read().year, 2008);
+    assert.strictEqual(yearContext1.read(), 2008);
   });
 
-  const newObject = {foo: 0};
-
-  const copy2 = mutate/*:: <typeof orig, _>*/(orig, (copy) => {
-    copy.value = newObject;
-    assert(copy.value.foo === 0);
-    // This should copy newObject; otherwise we'd be able to have
-    // side-effects across multiple objects.
-    copy.value.foo = 2;
-    assert(newObject.foo === 0);
-  });
-
-  assert(orig.value.foo === undefined);
-  assert(orig.value === orig.object);
-  assert(copy1.value.foo === 1);
-  assert(copy1.value === copy1.object);
-  assert(copy2.value.foo === 2);
-  assert(copy2.value === copy2.object);
-}
-
-{ // functions
-
-  const origFunc = function (/*:: this: {|+func: () => string, +value: string|} */) {
-    return this.value;
-  };
-
-  const orig/*: {|+func: () => string, +value: string|} */ = {
-    func: origFunc,
-    value: 'abc',
-  };
-
-  const copy = mutate/*:: <{func: (() => string) & {prop?: boolean, ...}, value: string}, _>*/(orig, (copy) => {
-    assert(typeof copy.func === 'function');
-    assert(copy.func instanceof Function);
-    assert(copy.func() === 'abc');
-    copy.value = '123';
-    assert(copy.func() === '123');
-
-    let error;
-    try {
-      copy.func.prop = true;
-    } catch (e) {
-      error = e;
-    }
-
-    // Can't clone functions, so the above should error.
-    assert(error && error.message.includes('unsupported'));
-
-    copy.func = () => '';
-    assert(copy.func() === '');
-  });
-}
-
-{ // null prorotypes
-
-  const orig/*: {__proto__: null, +value: {__proto__: null, +number: number}} */ = Object.create(null, {
-    value: {
-      configurable: true,
-      enumerable: true,
-      value: Object.create(null, {
-        number: {
-          configurable: true,
-          enumerable: true,
-          value: 1,
-          writable: false,
-        },
-      }),
-      writable: false,
-    },
-  });
-
-  const copy = mutate/*:: <{__proto__: null, value: {__proto__: null, number: number}}, _>*/(orig, (copy) => {
-    copy.value.number = 2;
-  });
-
-  assert(orig.value.number === 1);
-  assert(copy.value.number === 2);
-  assert(Object.getPrototypeOf(copy) === null);
-  assert(Object.getPrototypeOf(copy.value) === null);
-}
-
-{ // Number / String objects
-
-  const orig/*: {+num: Number, +str: String} */ = {
-    num: new Number(1),
-    str: new String('hello'),
-  };
-
-  const copy = mutate/*:: <{num: Number, str: String}, _>*/(orig, (copy) => {
-    let error;
-
-    error = null;
-    try {
-      copy.num.valueOf();
-    } catch (e) {
-      error = e;
-    }
-    assert(error && error.message.includes('unsupported'));
-
-    copy.num = new Number(orig.num.valueOf() + 2);
-
-    error = null;
-    try {
-      copy.str[4] = 'p';
-    } catch (e) {
-      error = e;
-    }
-    assert(error && error.message.includes('unsupported'));
-  });
-
-  assert(orig.num.valueOf() === 1);
-  assert(orig.str.valueOf() === 'hello');
-  assert(copy.num.valueOf() === 3);
-  assert(copy.str === orig.str);
-}
-
-{ // non-objects
-
-  let error = null;
-  try { mutate(null, () => {}) } catch (e) { error = e }
-  assert(error && error.message === 'Expected an object to mutate');
-}
-
-{ // derived built-ins
-
-  class FunDate extends Date {}
-
-  let error = null;
-  try {
-    mutate(new FunDate(), (copy/*: FunDate */) => {
-      copy.setFullYear(1999);
+  await t.test('works on shared references', (t) => {
+    const shared/*: {+foo: string} */ = Object.freeze({foo: ''});
+    const object/*: {
+      +prop1: typeof shared,
+      +prop2: typeof shared,
+    } */ = Object.freeze({
+      prop1: shared,
+      prop2: shared,
     });
-  } catch (e) {
-    error = e;
-  }
-  assert(error && error.message.includes('unsupported'));
-}
-
-/*::
-type Cyclic = {x: Cyclic | null}
-*/
-
-{ // cyclic references
-
-  // $FlowIgnore[prop-missing]
-  const object/*: Cyclic */ = {x: null};
-  object.x = object;
-
-  const newObject = mutate(object, (newObject/*: Cyclic */) => {
-    if (newObject.x) {
-      newObject.x.x = null;
-    }
+    const copy = mutate(object)
+      .set('prop1', 'foo', 'abc')
+      .set('prop2', 'foo', '123')
+      .final();
+    assert.strictEqual(copy.prop1.foo, 'abc');
+    assert.strictEqual(copy.prop2.foo, '123');
   });
 
-  assert((object.x?.x?.x) === object);
-  assert((newObject.x?.x) === null);
-}
+  await t.test('works on externally-frozen objects', (t) => {
+    const source/*: {+ref: {+name: string} | null} */ =
+      Object.freeze({ref: null});
+    const frozenRef = Object.freeze({name: ''});
+    const copy = mutate(source)
+      .set('ref', frozenRef)
+      // $FlowIgnore[incompatible-call]
+      .set('ref', 'name', 'hi')
+      .final();
+    assert.strictEqual(copy.ref?.name, 'hi');
+  });
+});
 
-{ // using a copy reference in an object spread
+test('update', async (t) => {
+  await t.test('works directly on the root (one argument)', (t) => {
+    const ctx = mutate(alice);
+    ctx.update((ctx2) => {
+      assert.strictEqual(ctx, ctx2);
+      ctx2.set('birth_date', 'year', 1988);
+    });
+    const copy = ctx.final();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
 
-  /*::
-  type OrigF00 = {
-    bar: {
-      baz: number,
-    },
-    func: (this: OrigF00) => OrigF00,
-  };
+  await t.test('works directly on a child (one argument)', (t) => {
+    const ctx = mutate(alice).get('birth_date');
+    ctx.update((ctx2) => {
+      assert.strictEqual(ctx, ctx2);
+      ctx2.set('year', 1988);
+    });
+    const copy = ctx.finalRoot();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
 
-  type OrigZYX = {
-    foo: OrigF00,
-  }
-  */
+  await t.test('works with one prop', (t) => {
+    const ctx = mutate(alice);
+    ctx.update('birth_date', (ctx2) => {
+      assert.strictEqual(ctx.get('birth_date'), ctx2);
+      ctx2.set('year', 1988);
+    });
+    const copy = ctx.finalRoot();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
 
-  const orig/*: OrigZYX */ = {
-    foo: {
-      bar: {
-        baz: 1,
+  await t.test('works with two props', (t) => {
+    const ctx = mutate(alice);
+    ctx.update('birth_date', 'year', (ctx2) => {
+      assert.strictEqual(ctx.get('birth_date', 'year'), ctx2);
+      ctx2.set(1988);
+    });
+    const copy = ctx.finalRoot();
+    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.strictEqual(copy.death_date, aliceDeathDate);
+  });
+
+  await t.test('chains with other update calls', (t) => {
+    let copy = mutate(alice)
+      .update('birth_date', 'year', (ctx) => { ctx.set(1988); })
+      .update('death_date', 'year', (ctx) => { ctx.set(2088); })
+      .final();
+  });
+});
+
+test('parent', async (t) => {
+  const ctx = mutate(alice);
+
+  await t.test('returns null on the root', (t) => {
+    assert.strictEqual(ctx.parent(), null);
+  });
+
+  await t.test('returns the parent of a child context', (t) => {
+    assert.strictEqual(ctx.get('birth_date').parent(), ctx);
+  });
+
+  await t.test('returns the parent of a grandchild context', (t) => {
+    assert.strictEqual(ctx.get('birth_date', 'year').parent(), ctx.get('birth_date'));
+  });
+
+  ctx.revoke();
+});
+
+test('root', async (t) => {
+  const ctx = mutate(alice);
+
+  await t.test('returns the root on the root', (t) => {
+    assert.strictEqual(ctx.root(), ctx);
+  });
+
+  await t.test('returns the root of a child context', (t) => {
+    assert.strictEqual(ctx.get('birth_date').root(), ctx);
+  });
+
+  await t.test('returns the root of a grandchild context', (t) => {
+    assert.strictEqual(ctx.get('birth_date', 'year').root(), ctx);
+  });
+
+  ctx.revoke();
+});
+
+test('revoke', async (t) => {
+  await t.test('can revoke the root context', async (t) => {
+    const ctx = mutate/*:: <ReadOnlyPerson> */(alice);
+    const birthDateContext = ctx.get('birth_date');
+    const birthDateYearContext = birthDateContext.get('year');
+    const deathDateContext = ctx.get('death_date');
+    const deathDateYearContext = deathDateContext.get('year');
+
+    ctx.revoke();
+    // Can call revoke twice.
+    ctx.revoke();
+
+    assert.ok(ctx.isRevoked());
+
+    await t.test('revoking the root context revokes all child contexts', (t) => {
+      assert.ok(birthDateContext.isRevoked());
+      assert.ok(birthDateYearContext.isRevoked());
+      assert.ok(deathDateContext.isRevoked());
+      assert.ok(deathDateYearContext.isRevoked());
+    });
+
+    await t.test('attempting to use a revoked context throws', (t) => {
+      assert.throws(() => {
+        ctx.set('birth_date', alice.birth_date);
+      }, ERROR_REVOKED);
+    });
+  });
+});
+
+test('final', async (t) => {
+  await t.test('can be called on child contexts without affecting parent', (t) => {
+    const root = Object.freeze({
+      foo: Object.freeze({bar: ''}),
+    });
+    const rootCtx = mutate(root);
+    const fooCtx = rootCtx.get('foo');
+    const fooCopy = fooCtx.set('bar', 'a').final();
+
+    assert.ok(Object.isFrozen(fooCopy));
+    assert.strictEqual(fooCopy.bar, 'a');
+
+    const rootCopy = rootCtx
+      .set('foo', 'bar', 'b')
+      .final();
+
+    assert.ok(Object.isFrozen(rootCopy));
+    assert.strictEqual(rootCopy.foo.bar, 'b');
+  });
+
+  await t.test('preserves frozenness of objects', (t) => {
+    const copy = mutate(alice).final();
+    assert.ok(Object.isFrozen(copy));
+    assert.ok(Object.isFrozen(copy.birth_date));
+    assert.ok(Object.isFrozen(copy.death_date));
+  });
+
+  await t.test('preserves frozenness of arrays', (t) => {
+    const copy = mutate(people)
+      .set(0, 'birth_date', 'year', 1988)
+      .update((ctx) => {
+        ctx.write().push(alice);
+      })
+      .final();
+    assert.strictEqual(copy[0].birth_date.year, 1988);
+    assert.strictEqual(copy[1], alice);
+    assert.ok(Object.isFrozen(copy));
+    assert.ok(Object.isFrozen(copy[0]));
+    assert.ok(Object.isFrozen(copy[0].birth_date));
+    assert.ok(Object.isFrozen(copy[0].death_date));
+  });
+
+  await t.test('preserves sealedness of objects', (t) => {
+    const orig/*: {+name: string, +address?: string} */ =
+      Object.seal({name: ''});
+    const copy = mutate(orig)
+      .set('address', 'abc')
+      .final();
+    assert.ok(Object.isSealed(copy));
+    assert.ok(!Object.isFrozen(copy));
+  });
+
+  await t.test('preserves extensibility of objects', (t) => {
+    const orig/*: {+name: string, +address?: string} */ =
+      Object.preventExtensions({name: ''});
+    const copy = mutate(orig)
+      .set('address', 'abc')
+      .final();
+    assert.ok(!Object.isExtensible(copy));
+    assert.ok(!Object.isSealed(copy));
+    assert.ok(!Object.isFrozen(copy));
+  });
+
+  await t.test('preserves descriptors for individual properties', (t) => {
+    const orig = {};
+
+    const origDescriptors = {
+      a: {configurable: false, enumerable: false, writable: false, value: undefined},
+      b: {configurable: false, enumerable: false, writable: true, value: undefined},
+      c: {configurable: false, enumerable: true, writable: false, value: undefined},
+      d: {configurable: false, enumerable: true, writable: true, value: undefined},
+      e: {configurable: true, enumerable: false, writable: false, value: undefined},
+      f: {configurable: true, enumerable: false, writable: true, value: undefined},
+      g: {configurable: true, enumerable: true, writable: false, value: undefined},
+      h: {configurable: true, enumerable: true, writable: true, value: undefined},
+    };
+
+    // $FlowIgnore[prop-missing]
+    Object.defineProperties(orig, origDescriptors);
+    // $FlowIgnore[incompatible-call]
+    const copy = mutate(orig).set('a', '1').final();
+    const copyDescriptors = Object.getOwnPropertyDescriptors(copy);
+    assert.deepStrictEqual(copyDescriptors.a, {...origDescriptors.a, value: '1'});
+    assert.deepStrictEqual(copyDescriptors.b, origDescriptors.b);
+    assert.deepStrictEqual(copyDescriptors.c, origDescriptors.c);
+    assert.deepStrictEqual(copyDescriptors.d, origDescriptors.d);
+    assert.deepStrictEqual(copyDescriptors.e, origDescriptors.e);
+    assert.deepStrictEqual(copyDescriptors.f, origDescriptors.f);
+    assert.deepStrictEqual(copyDescriptors.g, origDescriptors.g);
+    assert.deepStrictEqual(copyDescriptors.h, origDescriptors.h);
+  });
+
+  await t.test('does not restore descriptors onto stale copies', (t) => {
+    const root = Object.freeze({
+      foo: Object.freeze({bar: ''}),
+    });
+
+    const rootCtx = mutate(root);
+    rootCtx.get('foo').set('bar', 'a');
+    const tmpFoo = rootCtx.get('foo').write();
+
+    assert.ok(!Object.isFrozen(tmpFoo));
+
+    rootCtx.set('foo', Object.freeze({bar: 'b'}));
+    rootCtx.get('foo').set('bar', 'c');
+
+    const rootCopy = rootCtx.finalRoot();
+    assert.ok(Object.isFrozen(rootCopy));
+    assert.ok(Object.isFrozen(rootCopy.foo));
+    assert.strictEqual(rootCopy.foo.bar, 'c');
+
+    // `tmpFoo` is stale
+    assert.ok(!Object.isFrozen(tmpFoo));
+    assert.strictEqual(tmpFoo.bar, 'a');
+  });
+
+  await t.test('preserves null prototypes', (t) => {
+    const orig/*: {
+      __proto__: null,
+      +value: {__proto__: null, +number: number},
+    } */ = Object.create(null, {
+      value: {
+        configurable: true,
+        enumerable: true,
+        value: Object.create(null, {
+          number: {
+            configurable: true,
+            enumerable: true,
+            value: 1,
+            writable: false,
+          },
+        }),
+        writable: false,
       },
-      func: function (/*:: this: OrigF00 */) {
-        return this;
-      },
-    },
-  };
+    });
 
-  let copy = mutate/*:: <any, _>*/(orig, (copy) => {
-    copy.foo = {...copy.foo};
+    const copy = mutate(orig)
+      .get('value')
+      .set('number', 2)
+      .parent()
+      .final();
+
+    assert.strictEqual(orig.value.number, 1);
+    assert.strictEqual(copy.value.number, 2);
+    assert.strictEqual(Object.getPrototypeOf(copy), null);
+    assert.strictEqual(Object.getPrototypeOf(copy.value), null);
   });
-
-  let error = null;
-  try {
-    copy.foo.bar.baz;
-  } catch (e) {
-    error = e;
-  }
-  assert(error && error.message.includes('forgotten to call unwrap'));
-
-  // Check that the error can trigger twice
-  try {
-    copy.foo.bar.baz;
-  } catch (e) {
-    error = e;
-  }
-  assert(error && error.message.includes('forgotten to call unwrap'));
-
-  copy = mutate/*:: <any, _>*/(orig, (copy, unwrap) => {
-    copy.foo = {...unwrap(copy.foo)};
-    assert(copy.foo.func() === copy.foo);
-  });
-
-  assert(copy.foo.func() === copy.foo);
-  assert(copy.foo.bar === orig.foo.bar);
-}
-
-{ // construct
-
-  class Cls {
-    /*::
-    foo: number;
-    */
-    constructor() {
-      this.foo = 1;
-    }
-  }
-
-  const orig = {
-    Cls,
-  };
-
-  const copy = mutate(orig, (copy/*: {Cls: Class<Cls>} */) => {
-    const c = new copy.Cls();
-    assert(c instanceof Cls);
-    assert(c.foo === 1);
-  });
-}
-
-{ // Object.freeze on a proxied object
-
-  // Arrays are somewhat special, because Object.freeze will attempt to make
-  // the `length` property non-configurable and non-writable via the
-  // defineProperty trap. However, a non-configurable property "cannot be
-  // non-writable, unless there exists a corresponding non-configurable,
-  // non-writable own property on the target object," i.e. our fake proxy
-  // target.
-  const copy = mutate([0], (copy/*: Array<number> & {error: boolean, ...} */) => {
-    Object.freeze(copy);
-
-    const desc = Object.getOwnPropertyDescriptor(copy, 'length');
-    assert(desc && !desc.configurable);
-    assert(desc && !desc.writable);
-
-    let error;
-    try {
-      copy.error = true;
-    } catch (e) {
-      error = e;
-    }
-    assert(error && error.message.includes('not extensible'));
-    assert(Object.isExtensible(copy) === false);
-  });
-  assert(Object.isExtensible(copy) === false);
-}
-
-{ // Assigning an externally-frozen object inside the proxy
-
-  const source = {ref: null};
-  const frozenRef = {name: ''};
-  Object.freeze(frozenRef);
-
-  const copy = mutate/*:: <{ref: {name: string}}, _>*/(source, copy => {
-    copy.ref = frozenRef;
-    copy.ref.name = 'hi';
-  });
-  assert(copy.ref && copy.ref.name === 'hi');
-}
+});

@@ -3,90 +3,141 @@
 ```JavaScript
 import mutate from 'mutate-cow';
 
-const animals = Object.freeze({
-  cats: Object.freeze(['ragamuffin', 'shorthair', 'maine coon']),
+const animals = deepFreeze({
+  cats: ['ragamuffin', 'shorthair', 'maine coon'],
 });
 
-const newAnimals = mutate(animals, copy => {
-  copy.cats.push('bobtail');
-  copy.dogs = Object.freeze(['hound']);
-});
+const newAnimals = mutate(animals)
+  .set('dogs', ['hound'])
+  .update('cats', (ctx) => {
+    ctx.write().push('bobtail');
+  })
+  .final();
 ```
 
-This module allows you to update an immutable object as if it were mutable, inside a callback. It has copy-on-write semantics, so properties are only changed if you write to them. (In fact, if you perform no writes, the same object is returned back.) This makes it useful in conjuction with libraries like React, where state may be compared by reference.
+This module allows you to update an immutable object as if it were mutable. It has copy-on-write semantics, so properties are only changed if you write to them. (In fact, if you perform no writes, the same object is returned back.) This makes it useful in conjuction with libraries like React, where state may be compared by reference.
 
-It's implemented using [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects, so browser support for that is required.
-
-While this doesn't appear to have been an original idea, I believe `mutate-cow` provides useful features that other packages don't:
+`mutate-cow` provides useful features that other packages don't:
 
  * All property descriptors from the immutable object are preserved in the copy.
- * All extensibility information from the immutable object is preserved in the copy. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen. (Inside the callback, of course, the working copy in unsealed and all properties are writable.)
- * Getters and setters from the immutable object can be used inside the callback, and are preserved in the copy; they aren't converted from accessors to writables.
- * Arrays, objects, and class instances are supported for mutation. Inside the callback, these have the correct identities when passed to `Array.isArray` or `instanceof`.
- * Usable Flow types are provided. (The first type parameter must be a non-read-only variant of the input type.)
-
-For usage, please see [the tests](test.mjs).
+ * All extensibility information from the immutable object is preserved in the copy. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen.
+ * Arrays, objects, and class instances are supported for mutation.
+ * Flow and TypeScript definitions are provided.
 
 No cows were harmed in the making of this code.
 
-## Caveats
+## API
 
-This module works for mutating plain objects, arrays, and user-defined classes. (Note, however, that class constructors are not called.) Other native, built-in object types are not supported for a variety reasons. For one, many of them can't be proxied correctly, because their methods aren't generic; i.e., they can't be called with a `this` value that's not of the exact object type. Another reason is that we'd need specialized code to clone each different type; they can't be created with `Object.create`, as the constructor must be called to define internal slots. We'd need further specialized code to intercept any methods that can write to any internal slots. That's just not feasible.
+### const ctx = mutate(source)
 
-Note that there's nothing wrong with creating *new* instances of these objects inside the callback and assigning them to properties. It's perfectly fine to clone them yourself. What's unsupported is mutating any existing objects of these types.
+Returns a "context" object which can modify a copy of `source`.
 
-```JavaScript
-const orig = {
-  date: new Date(),
-  string: new String('hello'),
-};
+```js
+const foo = deepFreeze({bar: {baz: []}});
+const ctx = mutate(foo);
+````
 
-mutate(orig, copy => {
-  // These are unsupported, and will throw TypeErrors.
-  copy.date.setFullYear(1999);
-  copy.date.customProp = 'y';
-  copy.string[0] = 'y';
+### ctx.read()
 
-  // These are fine.
-  const newDate = new Date(orig.date.valueOf());
-  newDate.setFullYear(1999);
-  newDate.customProp = 'y';
-  copy.date = newDate;
-  copy.string = new String('yello');
-});
+Returns the current working copy of the context's `source` object, or just `source` if no changes were made.
+
+```js
+ctx.read() === foo; // no changes
+ctx.set('bar', 'baz', ['qux']);
+ctx.read().bar.baz[0] === 'qux'; // changes
 ```
 
-### Unwrapping proxied values
+### ctx.write()
 
-When you read from a property inside the callback, a `Proxy` is returned that can read from the source object (or working copy) and write to the copy. You may then wonder what happens if you perform `copy.foo = copy.bar`: will this assign a `Proxy`, or the value it targets? The answer in this case is the value it targets, because `mutate-cow` automatically unwraps proxied values on the RHS of assignments. However, suppose you did something like this instead:
+Returns the current working copy of the context's `source` object. Makes a shallow copy of `source` first if no changes were made.
 
-```JavaScript
-const orig = {foo: {value: 1}, bar: {value: 2}};
+You normally don't need to call `write`. It's mainly useful for accessing methods on copied objects (e.g., array methods).
 
-const copy = mutate(orig, copy => {
-  // this will assign an object resembling {value: Proxy}!
-  copy.foo = {...copy.bar};
-});
+```js
+ctx.get('bar', 'baz').write().push('qux');
+ctx.read().bar.baz[0] === 'qux';
 ```
 
-In the above case, `copy.bar.value` is a `Proxy`, but `{...copy.bar}` (the assigned object) is not. `mutate-cow` doesn't *deeply* unwrap values, so you have to do it yourself in this case:
+### ctx.get(...path: [prop1, ...])
 
-```JavaScript
-const orig = {foo: {value: 1}, bar: {value: 2}};
+Returns a child context object for the given `path`.
 
-const copy = mutate(orig, (copy, unwrap) => {
-  copy.foo = {...unwrap(copy.bar)};
-});
+Passing zero arguments returns `ctx`.
+
+```js
+ctx.get() === ctx;
+ctx.get('bar').read() === foo.bar;
+ctx.get('bar', 'baz').read() === '';
 ```
 
-If you don't do this, accessing `copy.foo.value` outside the callback will throw an error, because the `Proxy` will be revoked! An alternative which avoids this situation entirely is to just reference the source object where possible:
+### ctx.set(...path: [prop1, ...], value)
 
-```JavaScript
-const orig = {foo: {value: 1}, bar: {value: 2}};
+Sets the given `path` to `value` on the current working copy. Returns `ctx`.
 
-const copy = mutate(orig, copy => {
-  copy.foo = {...orig.bar};
-});
+Passing zero property names (i.e., only a value) sets the current context's value.
+
+```js
+// these all do the same thing
+ctx.set({bar: {baz: 2}});
+ctx.set('bar', {baz: 2});
+ctx.set('bar', 'baz', 2);
+ctx.get('bar').set({baz: 2});
+ctx.get('bar').set('baz', 2);
+ctx.get('bar', 'baz').set(2);
 ```
 
-In fact, all `unwrap` does is return the underlying data from the source, or the working copy where you've made changes.
+### ctx.update(...path: [prop1, ...], updater)
+
+Calls `updater(ctx.get(...path))` and returns `ctx`.
+
+```js
+const copy = ctx
+  .update('bar', 'baz', (bazCtx) => {
+    bazCtx.write().push('qux');
+  })
+  .final();
+copy.bar.baz[0] === 'qux';
+````
+
+### ctx.parent()
+
+Returns the parent context of `ctx`.
+
+```js
+ctx.parent() === null;
+ctx.get('bar').parent() === ctx;
+ctx.get('bar', 'baz').parent() === ctx.get('bar');
+````
+
+### ctx.root()
+
+Returns the root context of `ctx`.
+
+```js
+ctx.root() === ctx;
+ctx.get('bar').root() === ctx;
+ctx.get('bar', 'baz').root() === ctx;
+````
+
+### ctx.revoke()
+
+Revokes `ctx` so that it can no longer be used. Returns `undefined`.
+
+Attempting to use any method other than `isRevoked` on a revoked context will throw an error. This sets all internal properties to `null` so that there's no longer any reference to the `source` object or copy.
+
+### ctx.isRevoked()
+
+Returns a boolean indicating whether `ctx` has been revoked.
+
+### ctx.final()
+
+This is the same as `read`, except it also revokes the context and restores all property descriptors and extensibility information. This is what you call to get the final copy.
+
+```js
+const copy = mutate(foo).set('bar', 'baz', 'qux').final();
+Object.isFrozen(copy) === true; // since `foo` was frozen, `copy` will be too
+````
+
+### ctx.finalRoot()
+
+Returns `ctx.root().final()`.

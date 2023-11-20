@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Michael Wiencek
+ * Copyright (c) 2023 Michael Wiencek
  *
  * This source code is licensed under the MIT license. A copy can be found
  * in the file named "LICENSE" at the root directory of this distribution.
@@ -15,21 +15,52 @@ for (let i = 65, next = root; i <= 90; i++) {
     prop2: 2,
     prop3: 3,
     prop4: 4,
-    prop4: 5,
+    prop5: 5,
   };
 }
 
-const updater1 = (newRoot) => {
-  newRoot.root = true;
+const updater1 = () => {
+  mutate(root).set('root', true).final();
 };
 
-const updater2 = (newRoot) => {
-  newRoot.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.leaf = true;
+const updater2 = () => {
+  mutate(root)
+    .set(
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+      'F',
+      'G',
+      'H',
+      'I',
+      'J',
+      'K',
+      'L',
+      'M',
+      'N',
+      'O',
+      'P',
+      'Q',
+      'R',
+      'S',
+      'T',
+      'U',
+      'V',
+      'W',
+      'X',
+      'Y',
+      'Z',
+      'leaf',
+      true,
+    )
+    .final();
 };
 
 function test() {
-  mutate(root, updater1); // shallow update
-  mutate(root, updater2); // deep update
+  updater1(); // shallow update
+  updater2(); // deep update
 }
 
 new Benchmark.Suite()
