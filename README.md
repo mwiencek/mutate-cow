@@ -67,7 +67,7 @@ Passing zero arguments returns `ctx`.
 ```js
 ctx.get() === ctx;
 ctx.get('bar').read() === foo.bar;
-ctx.get('bar', 'baz').read() === '';
+ctx.get('bar', 'baz').read().length === 0;
 ```
 
 ### ctx.set(...path: [prop1, ...], value)
@@ -77,13 +77,14 @@ Sets the given `path` to `value` on the current working copy. Returns `ctx`.
 Passing zero property names (i.e., only a value) sets the current context's value.
 
 ```js
+const qux = ['qux'];
 // these all do the same thing
-ctx.set({bar: {baz: 2}});
-ctx.set('bar', {baz: 2});
-ctx.set('bar', 'baz', 2);
-ctx.get('bar').set({baz: 2});
-ctx.get('bar').set('baz', 2);
-ctx.get('bar', 'baz').set(2);
+ctx.set({bar: {baz: qux}});
+ctx.set('bar', {baz: qux});
+ctx.set('bar', 'baz', qux);
+ctx.get('bar').set({baz: qux});
+ctx.get('bar').set('baz', qux);
+ctx.get('bar', 'baz').set(qux);
 ```
 
 ### ctx.update(...path: [prop1, ...], updater)
