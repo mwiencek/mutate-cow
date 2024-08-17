@@ -1,4 +1,6 @@
 .flowconfig
+.yarn/
+.yarnrc.yml
 bench.js
 dist/
 serve.json
