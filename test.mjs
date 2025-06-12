@@ -501,39 +501,43 @@ test('update', (t) => {
 });
 
 test('parent', (t) => {
-  const ctx = mutate(alice);
-
   t.test('returns null on the root', (t) => {
+    const ctx = mutate(alice);
     assert.strictEqual(ctx.parent(), null);
+    ctx.revoke();
   });
 
   t.test('returns the parent of a child context', (t) => {
+    const ctx = mutate(alice);
     assert.strictEqual(ctx.get('birth_date').parent(), ctx);
+    ctx.revoke();
   });
 
   t.test('returns the parent of a grandchild context', (t) => {
+    const ctx = mutate(alice);
     assert.strictEqual(ctx.get('birth_date', 'year').parent(), ctx.get('birth_date'));
+    ctx.revoke();
   });
-
-  ctx.revoke();
 });
 
 test('root', (t) => {
-  const ctx = mutate(alice);
-
   t.test('returns the root on the root', (t) => {
+    const ctx = mutate(alice);
     assert.strictEqual(ctx.root(), ctx);
+    ctx.revoke();
   });
 
   t.test('returns the root of a child context', (t) => {
+    const ctx = mutate(alice);
     assert.strictEqual(ctx.get('birth_date').root(), ctx);
+    ctx.revoke();
   });
 
   t.test('returns the root of a grandchild context', (t) => {
+    const ctx = mutate(alice);
     assert.strictEqual(ctx.get('birth_date', 'year').root(), ctx);
+    ctx.revoke();
   });
-
-  ctx.revoke();
 });
 
 test('revoke', (t) => {
