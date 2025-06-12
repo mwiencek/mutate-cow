@@ -572,7 +572,7 @@ test('revoke', (t) => {
 test('final', (t) => {
   t.test('can be called on child contexts without affecting parent', (t) => {
     const root = Object.freeze({
-      foo: Object.freeze({bar: ''}),
+      foo: Object.freeze({bar: '' /*:: as string */}),
     });
     const rootCtx = mutate(root);
     const fooCtx = rootCtx.get('foo');
@@ -663,7 +663,7 @@ test('final', (t) => {
 
   t.test('does not restore descriptors onto stale copies', (t) => {
     const root = Object.freeze({
-      foo: Object.freeze({bar: ''}),
+      foo: Object.freeze({bar: '' /*:: as string */}),
     });
 
     const rootCtx = mutate(root);
