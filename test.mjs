@@ -79,22 +79,22 @@ const unsupportedProperties/*: {
   stringObject: new String(''),
 };
 
-test('mutate', async (t) => {
-  await t.test('throws if you pass null', async (t) => {
+test('mutate', (t) => {
+  t.test('throws if you pass null', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       mutate(null);
     }, ERROR_CLONE);
   });
 
-  await t.test('throws if you pass a derived built-in', async (t) => {
+  t.test('throws if you pass a derived built-in', (t) => {
     class FunDate extends Date {}
     assert.throws(() => {
       mutate(new FunDate());
     }, ERROR_CLONE);
   });
 
-  await t.test('throws if you pass a generator', async (t) => {
+  t.test('throws if you pass a generator', (t) => {
     function* makeGenerator() {
       yield 1;
     }
@@ -104,18 +104,18 @@ test('mutate', async (t) => {
   });
 });
 
-test('read', async (t) => {
-  await t.test('returns the original value if no changes were made', (t) => {
+test('read', (t) => {
+  t.test('returns the original value if no changes were made', (t) => {
     assert.strictEqual(mutate(people).read()[0].birth_date.year, 2100);
   });
 
-  await t.test('returns the current changes', (t) => {
+  t.test('returns the current changes', (t) => {
     const ctx = mutate(people);
     ctx.set(0, 'birth_date', 'year', 1988);
     assert.strictEqual(ctx.read()[0].birth_date.year, 1988);
   });
 
-  await t.test('throws if the context is revoked', (t) => {
+  t.test('throws if the context is revoked', (t) => {
     const ctx = mutate(alice);
     ctx.revoke();
     assert.throws(() => {
@@ -124,26 +124,26 @@ test('read', async (t) => {
   });
 });
 
-test('write', async (t) => {
-  await t.test('forces a copy even if no changes are made', (t) => {
+test('write', (t) => {
+  t.test('forces a copy even if no changes are made', (t) => {
     const copy = mutate(alice).update(ctx => ctx.write()).final();
     assert.notStrictEqual(copy, alice);
   });
 
-  await t.test('returns the current changes', (t) => {
+  t.test('returns the current changes', (t) => {
     const ctx = mutate(people);
     ctx.set(0, 'birth_date', 'year', 1988);
     assert.strictEqual(ctx.write()[0].birth_date.year, 1988);
   });
 
-  await t.test('allows pushing array values', (t) => {
+  t.test('allows pushing array values', (t) => {
     const copy = mutate(people)
       .update((ctx) => ctx.write().push(alice))
       .final();
     assert.strictEqual(copy[2], alice);
   });
 
-  await t.test('can be called on child primitives', (t) => {
+  t.test('can be called on child primitives', (t) => {
     const ctx = mutate(alice);
     ctx.get('birth_date', 'year').write();
     // $FlowIgnore[cannot-write]
@@ -152,7 +152,7 @@ test('write', async (t) => {
     assert.strictEqual(copy.birth_date.year, 1988);
   });
 
-  await t.test('throws if the context is revoked', (t) => {
+  t.test('throws if the context is revoked', (t) => {
     const ctx = mutate(people);
     ctx.revoke();
     assert.throws(() => {
@@ -161,25 +161,25 @@ test('write', async (t) => {
   });
 });
 
-test('get', async (t) => {
-  await t.test('returns `this` if no arguments are passed', (t) => {
+test('get', (t) => {
+  t.test('returns `this` if no arguments are passed', (t) => {
     const ctx = mutate(alice);
     assert.strictEqual(ctx.get(), ctx);
   });
 
-  await t.test('works with one prop', (t) => {
+  t.test('works with one prop', (t) => {
     assert.strictEqual(mutate(alice).get('birth_date').read(), alice.birth_date);
   });
 
-  await t.test('works with two props', (t) => {
+  t.test('works with two props', (t) => {
     assert.strictEqual(mutate(alice).get('birth_date', 'year').read(), alice.birth_date.year);
   });
 
-  await t.test('chains with other get calls', (t) => {
+  t.test('chains with other get calls', (t) => {
     assert.strictEqual(mutate(alice).get('birth_date').get('year').read(), alice.birth_date.year);
   });
 
-  await t.test('throws if the context is revoked', (t) => {
+  t.test('throws if the context is revoked', (t) => {
     const ctx = mutate(alice);
     ctx.revoke();
     assert.throws(() => {
@@ -187,7 +187,7 @@ test('get', async (t) => {
     }, ERROR_REVOKED);
   });
 
-  await t.test('throws on getters and setters', (t) => {
+  t.test('throws on getters and setters', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
@@ -200,8 +200,8 @@ test('get', async (t) => {
   });
 });
 
-test('set', async (t) => {
-  await t.test('works directly on the root (one argument)', (t) => {
+test('set', (t) => {
+  t.test('works directly on the root (one argument)', (t) => {
     let copy = mutate(alice)
       .set({...alice, birth_date: {...alice.birth_date, year: 1988}})
       .final();
@@ -215,7 +215,7 @@ test('set', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('works directly on a child (one argument)', (t) => {
+  t.test('works directly on a child (one argument)', (t) => {
     let copy = mutate(alice)
       .get('birth_date')
       .set({...alice.birth_date, year: 1988})
@@ -230,7 +230,7 @@ test('set', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('works with one prop', (t) => {
+  t.test('works with one prop', (t) => {
     const copy = mutate(alice)
       .get('birth_date')
       .set('year', 1988)
@@ -239,7 +239,7 @@ test('set', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('works with two props', (t) => {
+  t.test('works with two props', (t) => {
     const copy = mutate(alice)
       .set('birth_date', 'year', 1988)
       .final();
@@ -247,7 +247,7 @@ test('set', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('chains with other set calls', (t) => {
+  t.test('chains with other set calls', (t) => {
     let copy = mutate(alice)
       .set('birth_date', 'year', 1988)
       .set('death_date', 'year', 2088)
@@ -276,7 +276,7 @@ test('set', async (t) => {
     );
   });
 
-  await t.test('returns the same object if no changes are made', (t) => {
+  t.test('returns the same object if no changes are made', (t) => {
     const copy1 = mutate(alice)
       .set('name', alice.name)
       .set('birth_date', alice.birth_date)
@@ -296,7 +296,7 @@ test('set', async (t) => {
     assert.strictEqual(people, copy2);
   });
 
-  await t.test('clones the object only once', async (t) => {
+  t.test('clones the object only once', (t) => {
     const ctx = mutate(alice);
     ctx.get('birth_date').set('year', 1987);
     const newBirthDate1 = ctx.read().birth_date;
@@ -305,7 +305,7 @@ test('set', async (t) => {
     assert.strictEqual(newBirthDate1, newBirthDate2);
   });
 
-  await t.test('throws if the context is revoked', (t) => {
+  t.test('throws if the context is revoked', (t) => {
     const ctx = mutate(alice);
     ctx.revoke();
     assert.throws(() => {
@@ -313,7 +313,7 @@ test('set', async (t) => {
     }, ERROR_REVOKED);
   });
 
-  await t.test('throws if called on a function', async (t) => {
+  t.test('throws if called on a function', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
@@ -322,7 +322,7 @@ test('set', async (t) => {
     }, ERROR_CLONE);
   });
 
-  await t.test('throws if called on a number object', async (t) => {
+  t.test('throws if called on a number object', (t) => {
     const ctx = mutate(unsupportedProperties);
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
@@ -330,14 +330,14 @@ test('set', async (t) => {
     }, ERROR_CLONE);
   });
 
-  await t.test('can set number objects directly', async (t) => {
+  t.test('can set number objects directly', (t) => {
     const copy = mutate(unsupportedProperties)
       .set('numberObject', new Number(2))
       .final();
     assert.strictEqual(+copy.numberObject, 2);
   });
 
-  await t.test('throws if called on a string object', async (t) => {
+  t.test('throws if called on a string object', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
@@ -346,14 +346,14 @@ test('set', async (t) => {
     }, ERROR_CLONE);
   });
 
-  await t.test('can set string objects directly', async (t) => {
+  t.test('can set string objects directly', (t) => {
     const copy = mutate(unsupportedProperties)
       .set('stringObject', new String('huh'))
       .final();
     assert.strictEqual(String(copy.stringObject), 'huh');
   });
 
-  await t.test('works on class instances', async (t) => {
+  t.test('works on class instances', (t) => {
     class NiceBase {}
     class NiceClass extends NiceBase {
       /*::
@@ -374,7 +374,7 @@ test('set', async (t) => {
     assert.strictEqual(orig.value, 'nice');
   });
 
-  await t.test('can add custom properties to arrays', (t) => {
+  t.test('can add custom properties to arrays', (t) => {
     const copy = mutate(people)
       // $FlowIgnore[incompatible-call]
       .set('customProp', 10)
@@ -383,7 +383,7 @@ test('set', async (t) => {
     assert.strictEqual(copy.customProp, 10);
   });
 
-  await t.test('works on cyclic references', (t) => {
+  t.test('works on cyclic references', (t) => {
     /*::
     type Cyclic = {x: Cyclic | null}
     */
@@ -403,7 +403,7 @@ test('set', async (t) => {
     assert.strictEqual((copy2.x?.x?.x), null);
   });
 
-  await t.test('propagates changes to parent contexts', (t) => {
+  t.test('propagates changes to parent contexts', (t) => {
     const ctx = mutate/*:: <ReadOnlyPerson> */(alice);
     const birthDateContext1 = ctx.get('birth_date');
     const yearContext1 = birthDateContext1.get('year');
@@ -417,7 +417,7 @@ test('set', async (t) => {
     assert.strictEqual(yearContext1.read(), 2008);
   });
 
-  await t.test('works on shared references', (t) => {
+  t.test('works on shared references', (t) => {
     const shared/*: {+foo: string} */ = Object.freeze({foo: ''});
     const object/*: {
       +prop1: typeof shared,
@@ -434,7 +434,7 @@ test('set', async (t) => {
     assert.strictEqual(copy.prop2.foo, '123');
   });
 
-  await t.test('works on externally-frozen objects', (t) => {
+  t.test('works on externally-frozen objects', (t) => {
     const source/*: {+ref: {+name: string} | null} */ =
       Object.freeze({ref: null});
     const frozenRef = Object.freeze({name: ''});
@@ -447,8 +447,8 @@ test('set', async (t) => {
   });
 });
 
-test('update', async (t) => {
-  await t.test('works directly on the root (one argument)', (t) => {
+test('update', (t) => {
+  t.test('works directly on the root (one argument)', (t) => {
     const ctx = mutate(alice);
     ctx.update((ctx2) => {
       assert.strictEqual(ctx, ctx2);
@@ -459,7 +459,7 @@ test('update', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('works directly on a child (one argument)', (t) => {
+  t.test('works directly on a child (one argument)', (t) => {
     const ctx = mutate(alice).get('birth_date');
     ctx.update((ctx2) => {
       assert.strictEqual(ctx, ctx2);
@@ -470,7 +470,7 @@ test('update', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('works with one prop', (t) => {
+  t.test('works with one prop', (t) => {
     const ctx = mutate(alice);
     ctx.update('birth_date', (ctx2) => {
       assert.strictEqual(ctx.get('birth_date'), ctx2);
@@ -481,7 +481,7 @@ test('update', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('works with two props', (t) => {
+  t.test('works with two props', (t) => {
     const ctx = mutate(alice);
     ctx.update('birth_date', 'year', (ctx2) => {
       assert.strictEqual(ctx.get('birth_date', 'year'), ctx2);
@@ -492,7 +492,7 @@ test('update', async (t) => {
     assert.strictEqual(copy.death_date, aliceDeathDate);
   });
 
-  await t.test('chains with other update calls', (t) => {
+  t.test('chains with other update calls', (t) => {
     let copy = mutate(alice)
       .update('birth_date', 'year', (ctx) => { ctx.set(1988); })
       .update('death_date', 'year', (ctx) => { ctx.set(2088); })
@@ -500,44 +500,44 @@ test('update', async (t) => {
   });
 });
 
-test('parent', async (t) => {
+test('parent', (t) => {
   const ctx = mutate(alice);
 
-  await t.test('returns null on the root', (t) => {
+  t.test('returns null on the root', (t) => {
     assert.strictEqual(ctx.parent(), null);
   });
 
-  await t.test('returns the parent of a child context', (t) => {
+  t.test('returns the parent of a child context', (t) => {
     assert.strictEqual(ctx.get('birth_date').parent(), ctx);
   });
 
-  await t.test('returns the parent of a grandchild context', (t) => {
+  t.test('returns the parent of a grandchild context', (t) => {
     assert.strictEqual(ctx.get('birth_date', 'year').parent(), ctx.get('birth_date'));
   });
 
   ctx.revoke();
 });
 
-test('root', async (t) => {
+test('root', (t) => {
   const ctx = mutate(alice);
 
-  await t.test('returns the root on the root', (t) => {
+  t.test('returns the root on the root', (t) => {
     assert.strictEqual(ctx.root(), ctx);
   });
 
-  await t.test('returns the root of a child context', (t) => {
+  t.test('returns the root of a child context', (t) => {
     assert.strictEqual(ctx.get('birth_date').root(), ctx);
   });
 
-  await t.test('returns the root of a grandchild context', (t) => {
+  t.test('returns the root of a grandchild context', (t) => {
     assert.strictEqual(ctx.get('birth_date', 'year').root(), ctx);
   });
 
   ctx.revoke();
 });
 
-test('revoke', async (t) => {
-  await t.test('can revoke the root context', async (t) => {
+test('revoke', (t) => {
+  t.test('can revoke the root context', (t) => {
     const ctx = mutate/*:: <ReadOnlyPerson> */(alice);
     const birthDateContext = ctx.get('birth_date');
     const birthDateYearContext = birthDateContext.get('year');
@@ -550,14 +550,14 @@ test('revoke', async (t) => {
 
     assert.ok(ctx.isRevoked());
 
-    await t.test('revoking the root context revokes all child contexts', (t) => {
+    t.test('revoking the root context revokes all child contexts', (t) => {
       assert.ok(birthDateContext.isRevoked());
       assert.ok(birthDateYearContext.isRevoked());
       assert.ok(deathDateContext.isRevoked());
       assert.ok(deathDateYearContext.isRevoked());
     });
 
-    await t.test('attempting to use a revoked context throws', (t) => {
+    t.test('attempting to use a revoked context throws', (t) => {
       assert.throws(() => {
         ctx.set('birth_date', alice.birth_date);
       }, ERROR_REVOKED);
@@ -565,8 +565,8 @@ test('revoke', async (t) => {
   });
 });
 
-test('final', async (t) => {
-  await t.test('can be called on child contexts without affecting parent', (t) => {
+test('final', (t) => {
+  t.test('can be called on child contexts without affecting parent', (t) => {
     const root = Object.freeze({
       foo: Object.freeze({bar: ''}),
     });
@@ -585,14 +585,14 @@ test('final', async (t) => {
     assert.strictEqual(rootCopy.foo.bar, 'b');
   });
 
-  await t.test('preserves frozenness of objects', (t) => {
+  t.test('preserves frozenness of objects', (t) => {
     const copy = mutate(alice).final();
     assert.ok(Object.isFrozen(copy));
     assert.ok(Object.isFrozen(copy.birth_date));
     assert.ok(Object.isFrozen(copy.death_date));
   });
 
-  await t.test('preserves frozenness of arrays', (t) => {
+  t.test('preserves frozenness of arrays', (t) => {
     const copy = mutate(people)
       .set(0, 'birth_date', 'year', 1988)
       .update((ctx) => {
@@ -607,7 +607,7 @@ test('final', async (t) => {
     assert.ok(Object.isFrozen(copy[0].death_date));
   });
 
-  await t.test('preserves sealedness of objects', (t) => {
+  t.test('preserves sealedness of objects', (t) => {
     const orig/*: {+name: string, +address?: string} */ =
       Object.seal({name: ''});
     const copy = mutate(orig)
@@ -617,7 +617,7 @@ test('final', async (t) => {
     assert.ok(!Object.isFrozen(copy));
   });
 
-  await t.test('preserves extensibility of objects', (t) => {
+  t.test('preserves extensibility of objects', (t) => {
     const orig/*: {+name: string, +address?: string} */ =
       Object.preventExtensions({name: ''});
     const copy = mutate(orig)
@@ -628,7 +628,7 @@ test('final', async (t) => {
     assert.ok(!Object.isFrozen(copy));
   });
 
-  await t.test('preserves descriptors for individual properties', (t) => {
+  t.test('preserves descriptors for individual properties', (t) => {
     const orig = {};
 
     const origDescriptors = {
@@ -657,7 +657,7 @@ test('final', async (t) => {
     assert.deepStrictEqual(copyDescriptors.h, origDescriptors.h);
   });
 
-  await t.test('does not restore descriptors onto stale copies', (t) => {
+  t.test('does not restore descriptors onto stale copies', (t) => {
     const root = Object.freeze({
       foo: Object.freeze({bar: ''}),
     });
@@ -681,7 +681,7 @@ test('final', async (t) => {
     assert.strictEqual(tmpFoo.bar, 'a');
   });
 
-  await t.test('preserves null prototypes', (t) => {
+  t.test('preserves null prototypes', (t) => {
     const orig/*: {
       __proto__: null,
       +value: {__proto__: null, +number: number},
