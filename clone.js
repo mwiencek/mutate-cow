@@ -5,12 +5,12 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import canClone from './canClone.mjs';
+import canClone from './canClone.js';
 import {
   NON_CONFIGURABLE,
   NON_CONFIGURABLE_AND_WRITABLE,
   NON_WRITABLE,
-} from './constants.mjs';
+} from './constants.js';
 
 function isPrimitive(value) {
   switch (typeof value) {

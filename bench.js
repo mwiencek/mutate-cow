@@ -6,7 +6,7 @@
  */
 
 import Benchmark from 'benchmark';
-import mutate from './index.mjs';
+import mutate from './index.js';
 
 const root = {};
 for (let i = 65, next = root; i <= 90; i++) {

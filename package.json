@@ -8,7 +8,7 @@
     "copy on write",
     "state management"
   ],
-  "main": "index.mjs",
+  "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT",
   "author": "Michael Wiencek <mwtuea@gmail.com>",
@@ -22,6 +22,7 @@
     "tsd": "0.29.0"
   },
   "sideEffects": false,
+  "type": "module",
   "scripts": {
     "test": "node --test --experimental-test-coverage"
   },

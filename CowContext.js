@@ -5,12 +5,12 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import clone from './clone.mjs';
+import clone from './clone.js';
 import {
   STATUS_CHANGED,
   STATUS_NONE,
   STATUS_REVOKED,
-} from './constants.mjs';
+} from './constants.js';
 
 const STALE_VALUE = Object.freeze(Object.create(null));
 

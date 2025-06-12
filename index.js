@@ -5,8 +5,8 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import canClone from './canClone.mjs';
-import CowContext from './CowContext.mjs';
+import canClone from './canClone.js';
+import CowContext from './CowContext.js';
 
 export default function mutate(source) {
   canClone(source);
