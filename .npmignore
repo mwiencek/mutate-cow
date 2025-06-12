@@ -3,6 +3,7 @@
 .yarnrc.yml
 bench.js
 dist/
+index.test-d.ts
 serve.json
 test.html
 test.js
