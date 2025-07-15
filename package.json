@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "benchmark": "2.1.4",
-    "flow-bin": "0.273.1",
+    "flow-bin": "0.275.0",
     "tsd": "0.29.0"
   },
   "sideEffects": false,
