@@ -11,9 +11,9 @@ import assert from 'node:assert';
 // $FlowIssue[cannot-resolve-module]
 import test from 'node:test';
 
-import mutate from './index.js';
+import mutate from './src/index.js';
 
-/*:: import * as types from './index.js'; */
+/*:: import * as types from './src/index.js'; */
 
 const ERROR_REVOKED =
   /^Error: This context has been revoked and can no longer be used\.$/;

@@ -8,8 +8,8 @@
     "copy on write",
     "state management"
   ],
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "src/index.js",
+  "types": "types/index.d.ts",
   "license": "MIT",
   "author": "Michael Wiencek <mwtuea@gmail.com>",
   "repository": {
