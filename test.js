@@ -21,6 +21,8 @@ const ERROR_REVOKED =
 const ERROR_CLONE =
   /^Error: Only plain objects, arrays, and class instances can be cloned\./;
 
+const SYMBOL_KEY = Symbol();
+
 /*::
 type DatePeriod = {
   year: number,
@@ -84,6 +86,53 @@ test('mutate', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       mutate(null);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if you pass undefined', (t) => {
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate(undefined);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if you pass a boolean', (t) => {
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate(false);
+    }, ERROR_CLONE);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate(true);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if you pass a number', (t) => {
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate(0);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if you pass a bigint', (t) => {
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate(BigInt('0'));
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if you pass a string', (t) => {
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate('');
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if you pass a symbol', (t) => {
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      mutate(SYMBOL_KEY);
     }, ERROR_CLONE);
   });
 
