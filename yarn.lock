@@ -479,6 +479,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"immer@npm:10.1.1":
+  version: 10.1.1
+  resolution: "immer@npm:10.1.1"
+  checksum: 10c0/b749e10d137ccae91788f41bd57e9387f32ea6d6ea8fd7eb47b23fd7766681575efc7f86ceef7fe24c3bc9d61e38ff5d2f49c2663b2b0c056e280a4510923653
+  languageName: node
+  linkType: hard
+
 "indent-string@npm:^4.0.0":
   version: 4.0.0
   resolution: "indent-string@npm:4.0.0"
@@ -710,6 +717,7 @@ __metadata:
   dependencies:
     benchmark: "npm:2.1.4"
     flow-bin: "npm:0.275.0"
+    immer: "npm:10.1.1"
     tsd: "npm:0.29.0"
   languageName: unknown
   linkType: soft

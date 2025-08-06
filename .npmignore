@@ -1,7 +1,7 @@
 .flowconfig
 .yarn/
 .yarnrc.yml
-bench.js
+benchmark/
 dist/
 serve.json
 test.html
