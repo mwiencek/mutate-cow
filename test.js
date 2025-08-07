@@ -69,6 +69,11 @@ const unsupportedProperties/*: {
   +func: () => string,
   +numberObject: Number,
   +stringObject: String,
+  +dateObject: Date,
+  +typedArrayObject: Int8Array,
+  +regExpObject: RegExp,
+  +mapObject: Map<empty, empty>,
+  +setObject: Set<empty>,
 } */ = {
   _value: '',
   get getValue()/*: string */ {
@@ -80,6 +85,11 @@ const unsupportedProperties/*: {
   func: () => '',
   numberObject: new Number(1),
   stringObject: new String(''),
+  dateObject: new Date(),
+  typedArrayObject: new Int8Array([]),
+  regExpObject: new RegExp(''),
+  mapObject: new Map(),
+  setObject: new Set(),
 };
 
 test('mutate', (t) => {
@@ -401,6 +411,51 @@ test('set', (t) => {
       .set('stringObject', new String('huh'))
       .final();
     assert.strictEqual(String(copy.stringObject), 'huh');
+  });
+
+  t.test('throws if called on a Date object', (t) => {
+    const ctx = mutate(unsupportedProperties);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('dateObject').set('error', null);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if called on a TypedArray object', (t) => {
+    const ctx = mutate(unsupportedProperties);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('typedArrayObject').set('error', null);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if called on a RegExp object', (t) => {
+    const ctx = mutate(unsupportedProperties);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('regExpObject').set('error', null);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if called on a Map object', (t) => {
+    const ctx = mutate(unsupportedProperties);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('mapObject').set('error', null);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws if called on a Set object', (t) => {
+    const ctx = mutate(unsupportedProperties);
+
+    assert.throws(() => {
+      // $FlowIgnore[incompatible-call]
+      ctx.get('setObject').set('error', null);
+    }, ERROR_CLONE);
   });
 
   t.test('works on class instances', (t) => {
