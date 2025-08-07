@@ -49,10 +49,10 @@ export default function clone(source, callbacks) {
   } else {
     copy = Object.create(Reflect.getPrototypeOf(source));
   }
-  const ownNames = Object.getOwnPropertyNames(source);
-  for (let i = 0; i < ownNames.length; i++) {
-    const name = ownNames[i];
-    const descriptor = Reflect.getOwnPropertyDescriptor(source, name);
+  const ownKeys = Reflect.ownKeys(source);
+  for (let i = 0; i < ownKeys.length; i++) {
+    const key = ownKeys[i];
+    const descriptor = Reflect.getOwnPropertyDescriptor(source, key);
     const nonConfigurable = descriptor.configurable === false;
     let origDesc;
     if (nonConfigurable) {
@@ -69,9 +69,9 @@ export default function clone(source, callbacks) {
       if (!changedDescriptors) {
         changedDescriptors = [];
       }
-      changedDescriptors.push([name, origDesc]);
+      changedDescriptors.push([key, origDesc]);
     }
-    Reflect.defineProperty(copy, name, descriptor);
+    Reflect.defineProperty(copy, key, descriptor);
   }
   if (changedDescriptors) {
     callbacks.push({

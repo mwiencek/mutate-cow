@@ -21,7 +21,8 @@ const ERROR_REVOKED =
 const ERROR_CLONE =
   /^Error: Only plain objects, arrays, and class instances can be cloned\./;
 
-const SYMBOL_KEY = Symbol();
+// $FlowIgnore[incompatible-cast]
+const SYMBOL_KEY = Symbol()/*:: as 'symbol' */;
 
 /*::
 type DatePeriod = {
@@ -493,6 +494,16 @@ test('set', (t) => {
       .set('ref', 'name', 'hi')
       .final();
     assert.strictEqual(copy.ref?.name, 'hi');
+  });
+
+  t.test('works on symbol keys', (t) => {
+    const rootCtx = mutate({[SYMBOL_KEY]: 1999, otherProp: 2000});
+    rootCtx.set('otherProp', 2001);
+    const symbolCtx = rootCtx.get(SYMBOL_KEY);
+    assert.strictEqual(symbolCtx.read(), 1999);
+    symbolCtx.set(2000);
+    assert.strictEqual(symbolCtx.read(), 2000);
+    assert.deepStrictEqual(rootCtx.final(), {[SYMBOL_KEY]: 2000, otherProp: 2001});
   });
 });
 
