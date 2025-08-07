@@ -14,7 +14,7 @@ export const CANNOT_CLONE_ERROR =
   'can be cloned. Primitives, functions, and built-ins ' +
   'are unsupported.';
 
-export default function canClone(object) {
+export default function throwIfNotCloneable(object) {
   if (!object || typeof object !== 'object') {
     throw new Error(CANNOT_CLONE_ERROR);
   }

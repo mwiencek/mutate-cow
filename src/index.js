@@ -5,10 +5,10 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import canClone from './canClone.js';
+import throwIfNotCloneable from './throwIfNotCloneable.js';
 import CowContext from './CowContext.js';
 
 export default function mutate(source) {
-  canClone(source);
+  throwIfNotCloneable(source);
   return new CowContext(source, null, null, null);
 }

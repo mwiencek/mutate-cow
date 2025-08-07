@@ -5,7 +5,7 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import canClone from './canClone.js';
+import throwIfNotCloneable from './throwIfNotCloneable.js';
 import {
   NON_CONFIGURABLE,
   NON_CONFIGURABLE_AND_WRITABLE,
@@ -41,7 +41,7 @@ export default function clone(source, callbacks) {
   if (isPrimitive(source)) {
     return source;
   }
-  canClone(source);
+  throwIfNotCloneable(source);
   let changedDescriptors;
   let copy;
   if (Array.isArray(source)) {
