@@ -560,6 +560,26 @@ test('set', (t) => {
     assert.strictEqual(symbolCtx.read(), 2000);
     assert.deepStrictEqual(rootCtx.final(), {[SYMBOL_KEY]: 2000, otherProp: 2001});
   });
+
+  t.test('works on array subclasses', (t) => {
+    class SubArray extends Array/*:: <number> */ {
+      /*:: +prop: string; */
+      constructor(prop/*: string */) {
+        super();
+        this.prop = prop;
+      }
+    }
+    const array = new SubArray('value');
+    array.push(1, 2, 3);
+
+    const newArray = mutate(array).update(ctx => {
+      ctx.write().push(4, 5, 6);
+    }).final();
+
+    assert.ok(newArray instanceof SubArray);
+    assert.strictEqual(newArray.prop, 'value');
+    assert.deepStrictEqual([...newArray], [1, 2, 3, 4, 5, 6]);
+  });
 });
 
 test('update', (t) => {

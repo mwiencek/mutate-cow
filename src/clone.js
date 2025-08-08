@@ -42,12 +42,13 @@ export default function clone(source, callbacks) {
     return source;
   }
   throwIfNotCloneable(source);
+  const proto = Reflect.getPrototypeOf(source);
   let changedDescriptors;
   let copy;
   if (Array.isArray(source)) {
-    copy = new Array(source.length);
+    copy = Reflect.construct(Array, source, proto.constructor);
   } else {
-    copy = Object.create(Reflect.getPrototypeOf(source));
+    copy = Object.create(proto);
   }
   const ownKeys = Reflect.ownKeys(source);
   for (let i = 0; i < ownKeys.length; i++) {
