@@ -6,7 +6,8 @@
  */
 
 import Benchmark from 'benchmark';
-import {produce} from 'immer';
+import {produce as immerProduce} from 'immer';
+import {create as mutativeCreate} from 'mutative';
 import mutate from '../src/index.js';
 
 function* aToZ() {
@@ -45,7 +46,19 @@ function mutateCowUpdater() {
 }
 
 function immerUpdater() {
-  produce(root, rootDraft => {
+  immerProduce(root, rootDraft => {
+    let childDraft = rootDraft;
+    for (const letter of aToZ()) {
+      childDraft = childDraft[letter];
+      for (let i = 0; i < 10; i++) {
+        childDraft['prop' + String(i)] = i + 1;
+      }
+    }
+  });
+}
+
+function mutativeUpdater() {
+  mutativeCreate(root, rootDraft => {
     let childDraft = rootDraft;
     for (const letter of aToZ()) {
       childDraft = childDraft[letter];
@@ -72,6 +85,7 @@ function objectSpreadUpdater() {
 new Benchmark.Suite()
   .add('mutate-cow', mutateCowUpdater)
   .add('immer', immerUpdater)
+  .add('mutative', mutativeUpdater)
   .add('object spread', objectSpreadUpdater)
   .on('cycle', function (event) {
     console.log(String(event.target));

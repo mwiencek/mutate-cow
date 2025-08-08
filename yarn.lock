@@ -718,9 +718,17 @@ __metadata:
     benchmark: "npm:2.1.4"
     flow-bin: "npm:0.275.0"
     immer: "npm:10.1.1"
+    mutative: "npm:1.2.0"
     tsd: "npm:0.29.0"
   languageName: unknown
   linkType: soft
+
+"mutative@npm:1.2.0":
+  version: 1.2.0
+  resolution: "mutative@npm:1.2.0"
+  checksum: 10c0/922e462c0b972d08cefe4da1e61aa54a3c83a30c8d747aa48e2124505003f83ba0077b66090f3bf46f71c986716e3a2c1d47af3c6a08e1c588050b293e662503
+  languageName: node
+  linkType: hard
 
 "normalize-package-data@npm:^2.5.0":
   version: 2.5.0
