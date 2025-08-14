@@ -10,5 +10,5 @@ import CowContext from './CowContext.js';
 
 export default function mutate(source) {
   throwIfNotCloneable(source);
-  return new CowContext(source, null, null, null);
+  return new CowContext(source, null, null);
 }

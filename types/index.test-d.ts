@@ -42,7 +42,7 @@ expectNotType<RwRoot>(ctx.read());
 expectType<RwRoot>(ctx.write());
 expectNotType<RoRoot>(ctx.write());
 
-type ObjContext = CowContext<RoValueContainer, RoRoot, CowRootContext<RoRoot>>;
+type ObjContext = CowContext<RoValueContainer, CowRootContext<RoRoot>>;
 
 expectType<CowRootContext<RoRoot>>(ctx.get());
 expectType<ObjContext>(ctx.get('obj'));

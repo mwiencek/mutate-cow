@@ -67,44 +67,52 @@ export type ShallowReadWrite<+T> =
   T extends {...} ? {...T} :
   T;
 
-export type CowRootContext<+R> = CowContext<R, R, null>;
+export type CowRootContext<+R> = CowContext<R, null>;
 
-export type CowAnyContext<+R> =
-  CowContext<mixed, R, CowAnyContext<R> | null>;
+export type CowAnyContext = CowContext<mixed, CowAnyContext | null>;
 
-type $Get1<+T, +K1, +R, +ThisContext> =
-  CowContext<PropType<T, K1>, R, ThisContext>;
-type $Get2<+T, +K1, +K2, +R, +ThisContext> =
-  CowContext<PropType2<T, K1, K2>, R, $Get1<T, K1, R, ThisContext>>;
-type $Get3<+T, +K1, +K2, +K3, +R, +ThisContext> =
-  CowContext<PropType3<T, K1, K2, K3>, R, $Get2<T, K1, K2, R, ThisContext>>;
-type $Get4<+T, +K1, +K2, +K3, +K4, +R, +ThisContext> =
-  CowContext<PropType4<T, K1, K2, K3, K4>, R, $Get3<T, K1, K2, K3, R, ThisContext>>;
-type $Get5<+T, +K1, +K2, +K3, +K4, +K5, +R, +ThisContext> =
-  CowContext<PropType5<T, K1, K2, K3, K4, K5>, R, $Get4<T, K1, K2, K3, K4, R, ThisContext>>;
-type $Get6<+T, +K1, +K2, +K3, +K4, +K5, +K6, +R, +ThisContext> =
-  CowContext<PropType6<T, K1, K2, K3, K4, K5, K6>, R, $Get5<T, K1, K2, K3, K4, K5, R, ThisContext>>;
-type $Get7<+T, +K1, +K2, +K3, +K4, +K5, +K6, +K7, +R, +ThisContext> =
-  CowContext<PropType7<T, K1, K2, K3, K4, K5, K6, K7>, R, $Get6<T, K1, K2, K3, K4, K5, K6, R, ThisContext>>;
-type $Get8<+T, +K1, +K2, +K3, +K4, +K5, +K6, +K7, +K8, +R, +ThisContext> =
-  CowContext<PropType8<T, K1, K2, K3, K4, K5, K6, K7, K8>, R, $Get7<T, K1, K2, K3, K4, K5, K6, K7, R, ThisContext>>;
+type $Get1<+T, +K1, +ThisContext> =
+  CowContext<PropType<T, K1>, ThisContext>;
+type $Get2<+T, +K1, +K2, +ThisContext> =
+  CowContext<PropType2<T, K1, K2>, $Get1<T, K1, ThisContext>>;
+type $Get3<+T, +K1, +K2, +K3, +ThisContext> =
+  CowContext<PropType3<T, K1, K2, K3>, $Get2<T, K1, K2, ThisContext>>;
+type $Get4<+T, +K1, +K2, +K3, +K4, +ThisContext> =
+  CowContext<PropType4<T, K1, K2, K3, K4>, $Get3<T, K1, K2, K3, ThisContext>>;
+type $Get5<+T, +K1, +K2, +K3, +K4, +K5, +ThisContext> =
+  CowContext<PropType5<T, K1, K2, K3, K4, K5>, $Get4<T, K1, K2, K3, K4, ThisContext>>;
+type $Get6<+T, +K1, +K2, +K3, +K4, +K5, +K6, +ThisContext> =
+  CowContext<PropType6<T, K1, K2, K3, K4, K5, K6>, $Get5<T, K1, K2, K3, K4, K5, ThisContext>>;
+type $Get7<+T, +K1, +K2, +K3, +K4, +K5, +K6, +K7, +ThisContext> =
+  CowContext<PropType7<T, K1, K2, K3, K4, K5, K6, K7>, $Get6<T, K1, K2, K3, K4, K5, K6, ThisContext>>;
+type $Get8<+T, +K1, +K2, +K3, +K4, +K5, +K6, +K7, +K8, +ThisContext> =
+  CowContext<PropType8<T, K1, K2, K3, K4, K5, K6, K7, K8>, $Get7<T, K1, K2, K3, K4, K5, K6, K7, ThisContext>>;
 
-declare export class CowContext<
-  +T: mixed,
-  +R: mixed = mixed,
-  +ParentContext: CowAnyContext<R> | null = CowAnyContext<R> | null,
-> {
+export type GetCowContextSource<+C> =
+  C extends CowContext<infer T, mixed>
+    ? T
+    : empty;
+
+export type GetCowContextRoot<+C> =
+  C extends CowContext<infer T, infer P>
+    ? (P extends null ? C : GetCowContextRoot<P>)
+    : empty;
+
+declare class CowContext<
+ +T,
+ +ParentContext: CowAnyContext | null = CowAnyContext | null,
+>{
   read(): T;
   write(): ShallowReadWrite<T>;
   get(): this;
-  get<const K1: KeyType<T>>(prop1: K1): $Get1<T, K1, R, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2): $Get2<T, K1, K2, R, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3): $Get3<T, K1, K2, K3, R, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4): $Get4<T, K1, K2, K3, K4, R, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5): $Get5<T, K1, K2, K3, K4, K5, R, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6): $Get6<T, K1, K2, K3, K4, K5, K6, R, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7): $Get7<T, K1, K2, K3, K4, K5, K6, K7, R, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8): $Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, R, this>;
+  get<const K1: KeyType<T>>(prop1: K1): $Get1<T, K1, this>;
+  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2): $Get2<T, K1, K2, this>;
+  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3): $Get3<T, K1, K2, K3, this>;
+  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4): $Get4<T, K1, K2, K3, K4, this>;
+  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5): $Get5<T, K1, K2, K3, K4, K5, this>;
+  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6): $Get6<T, K1, K2, K3, K4, K5, K6, this>;
+  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7): $Get7<T, K1, K2, K3, K4, K5, K6, K7, this>;
+  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8): $Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, this>;
   set(newValue: T): this;
   set<const K1: KeyType<T>>(prop1: K1, newValue: PropType<T, K1>): this;
   set<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2, newValue: PropType2<T, K1, K2>): this;
@@ -115,20 +123,20 @@ declare export class CowContext<
   set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, newValue: PropType7<T, K1, K2, K3, K4, K5, K6, K7>): this;
   set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, newValue: PropType8<T, K1, K2, K3, K4, K5, K6, K7, K8>): this;
   update(updater: (this) => mixed): this;
-  update<const K1: KeyType<T>>(prop1: K1, updater: ($Get1<T, K1, R, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2, updater: ($Get2<T, K1, K2, R, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3, updater: ($Get3<T, K1, K2, K3, R, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, updater: ($Get4<T, K1, K2, K3, K4, R, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, updater: ($Get5<T, K1, K2, K3, K4, K5, R, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, updater: ($Get6<T, K1, K2, K3, K4, K5, K6, R, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, updater: ($Get7<T, K1, K2, K3, K4, K5, K6, K7, R, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, updater: ($Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, R, this>) => mixed): this;
+  update<const K1: KeyType<T>>(prop1: K1, updater: ($Get1<T, K1, this>) => mixed): this;
+  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2, updater: ($Get2<T, K1, K2, this>) => mixed): this;
+  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3, updater: ($Get3<T, K1, K2, K3, this>) => mixed): this;
+  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, updater: ($Get4<T, K1, K2, K3, K4, this>) => mixed): this;
+  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, updater: ($Get5<T, K1, K2, K3, K4, K5, this>) => mixed): this;
+  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, updater: ($Get6<T, K1, K2, K3, K4, K5, K6, this>) => mixed): this;
+  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, updater: ($Get7<T, K1, K2, K3, K4, K5, K6, K7, this>) => mixed): this;
+  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, updater: ($Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, this>) => mixed): this;
   parent(): ParentContext;
-  root(): CowRootContext<R>;
+  root(): GetCowContextRoot<this>;
   revoke(): void;
   isRevoked(): boolean;
   final(): T;
-  finalRoot(): R;
+  finalRoot(): GetCowContextSource<GetCowContextRoot<this>>;
 }
 
 declare export default function mutate<T>(

@@ -15,10 +15,9 @@ import {
 const STALE_VALUE = Object.freeze(Object.create(null));
 
 export default class CowContext {
-  constructor(source, prop, root, parent) {
+  constructor(source, prop, parent) {
     this._source = source;
     this._prop = prop;
-    this._root = root || this;
     this._parent = parent;
     this._callbacks = [];
     this._result = null;
@@ -113,7 +112,7 @@ export default class CowContext {
       return child;
     }
 
-    child = new CowContext(value, prop, this._root, this);
+    child = new CowContext(value, prop, this);
     children.set(prop, child);
     return child;
   }
@@ -186,7 +185,11 @@ export default class CowContext {
 
   root() {
     this._throwIfRevoked();
-    return this._root;
+    let root = this;
+    while (root._parent !== null) {
+      root = root._parent;
+    }
+    return root;
   }
 
   revoke() {
@@ -204,7 +207,6 @@ export default class CowContext {
     }
     this._source = null;
     this._prop = null;
-    this._root = null;
     this._parent = null;
     this._callbacks = null;
     this._result = null;

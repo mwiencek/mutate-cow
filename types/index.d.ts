@@ -7,40 +7,50 @@ type NestedProp<T, Path extends ReadonlyArray<PropertyKey>> =
     )
     : T;
 
-type NestedContext<T, R, ParentContext extends CowAnyContext<R> | null, Path extends ReadonlyArray<PropertyKey>> =
+type NestedContext<T, ParentContext extends CowAnyContext | null, Path extends ReadonlyArray<PropertyKey>> =
   Path extends [infer First, ...infer Rest]
     ? (
       First extends keyof T
-        ? NestedContext<T[First], R, CowContext<T, R, ParentContext>, Extract<Rest, ReadonlyArray<PropertyKey>>>
+        ? NestedContext<T[First], CowContext<T, ParentContext>, Extract<Rest, ReadonlyArray<PropertyKey>>>
         : never
     )
-    : CowContext<T, R, ParentContext>;
+    : CowContext<T, ParentContext>;
 
 type ShallowReadWrite<T> =
   T extends ReadonlyArray<infer V> ? Array<V> :
   T extends object ? {-readonly [K in keyof T]: T[K]} : never;
 
-type CowRootContext<R> = CowContext<R, R, null>;
+type CowRootContext<R> = CowContext<R, null>;
 
-type CowAnyContext<R> =
-  CowContext<unknown, R, CowAnyContext<R> | null>;
+type CowAnyContext =
+  CowContext<unknown, CowAnyContext | null>;
+
+type GetCowContextSource<C> =
+  C extends CowContext<infer T, CowAnyContext | null>
+    ? T
+    : never;
+
+type GetCowContextRoot<C> =
+  C extends CowContext<infer T, infer P>
+    ? (P extends null ? C : GetCowContextRoot<P>)
+    : never;
 
 declare class CowContext<
   out T,
-  out R,
-  out ParentContext extends CowAnyContext<R> | null = CowAnyContext<R> | null,
+  // @ts-ignore
+  out ParentContext extends CowAnyContext | null = CowAnyContext | null,
 > {
   read(): T;
   write(): ShallowReadWrite<T>;
-  get<Path extends ReadonlyArray<PropertyKey>>(...path: Path): NestedContext<T, R, ParentContext, Path>;
+  get<Path extends ReadonlyArray<PropertyKey>>(...path: Path): NestedContext<T, ParentContext, Path>;
   set<Path extends ReadonlyArray<PropertyKey>>(...args: [...Path, NestedProp<T, Path>]): this;
-  update<Path extends ReadonlyArray<PropertyKey>>(...args: [...Path, (childContext: NestedContext<T, R, ParentContext, Path>) => unknown]): this;
+  update<Path extends ReadonlyArray<PropertyKey>>(...args: [...Path, (childContext: NestedContext<T, ParentContext, Path>) => unknown]): this;
   parent(): ParentContext;
-  root(): CowRootContext<R>;
+  root(): GetCowContextRoot<this>;
   revoke(): void;
   isRevoked(): boolean;
   final(): T;
-  finalRoot(): R;
+  finalRoot(): GetCowContextSource<GetCowContextRoot<this>>;
 }
 
 declare function mutate<T>(
