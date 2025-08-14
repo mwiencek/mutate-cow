@@ -436,6 +436,14 @@ test('set', (t) => {
     assert.strictEqual(orig.value, 'nice');
   });
 
+  t.test('can set the length on arrays', (t) => {
+    assert.deepStrictEqual(
+      // $FlowIgnore[incompatible-call]
+      mutate([1, 2, 3]).set('length', 1).final(),
+      [1],
+    );
+  });
+
   t.test('can add custom properties to arrays', (t) => {
     const copy = mutate(people)
       // $FlowIgnore[incompatible-call]
