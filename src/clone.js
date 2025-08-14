@@ -44,7 +44,7 @@ function getCloneableType(value) {
   if (typeof value !== 'object') {
     return 0;
   }
-  let proto = Reflect.getPrototypeOf(value);
+  let proto = Object.getPrototypeOf(value);
   while (proto) {
     let ctor = proto.constructor;
     // A Generator object's constructor is an object.
@@ -59,7 +59,7 @@ function getCloneableType(value) {
     ) {
       return 0;
     }
-    proto = Reflect.getPrototypeOf(proto);
+    proto = Object.getPrototypeOf(proto);
   }
   return 2;
 }
@@ -81,7 +81,7 @@ function throwIfTypeNotCloneable(cloneableType) {
 function restoreDescriptors(copy, changedDescriptors) {
   for (let i = 0; i < changedDescriptors.length; i++) {
     const [name, origDesc] = changedDescriptors[i];
-    const descriptor = Reflect.getOwnPropertyDescriptor(copy, name);
+    const descriptor = Object.getOwnPropertyDescriptor(copy, name);
     if (descriptor) {
       Object.assign(descriptor, origDesc);
       Reflect.defineProperty(copy, name, descriptor);
@@ -95,7 +95,7 @@ export default function clone(source, callbacks) {
   if (cloneableType === 1) {
     return source;
   }
-  const proto = Reflect.getPrototypeOf(source);
+  const proto = Object.getPrototypeOf(source);
   let changedDescriptors = [];
   let copy;
   if (Array.isArray(source)) {
@@ -106,7 +106,7 @@ export default function clone(source, callbacks) {
   const ownKeys = Reflect.ownKeys(source);
   for (let i = 0; i < ownKeys.length; i++) {
     const key = ownKeys[i];
-    const descriptor = Reflect.getOwnPropertyDescriptor(source, key);
+    const descriptor = Object.getOwnPropertyDescriptor(source, key);
     const nonConfigurable = descriptor.configurable === false;
     let origDesc;
     if (nonConfigurable) {
@@ -140,9 +140,9 @@ export default function clone(source, callbacks) {
       func: Object.seal,
       args: [copy],
     });
-  } else if (!Reflect.isExtensible(source)) {
+  } else if (!Object.isExtensible(source)) {
     callbacks.push({
-      func: Reflect.preventExtensions,
+      func: Object.preventExtensions,
       args: [copy],
     });
   }
