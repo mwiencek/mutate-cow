@@ -4,7 +4,6 @@
 benchmark/
 dist/
 serve.json
-test.html
-test.js
+test/
 types/index.test-d.ts
 yarn.lock
