@@ -3,7 +3,6 @@
 .yarnrc.yml
 benchmark/
 dist/
-serve.json
 test/
 types/index.test-d.ts
 yarn.lock
