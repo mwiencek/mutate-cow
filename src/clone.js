@@ -88,7 +88,7 @@ export default function clone(source, callbacks) {
     return source;
   }
   const proto = Reflect.getPrototypeOf(source);
-  let changedDescriptors;
+  let changedDescriptors = [];
   let copy;
   if (Array.isArray(source)) {
     copy = Reflect.construct(Array, source, proto.constructor);
@@ -112,14 +112,11 @@ export default function clone(source, callbacks) {
         : NON_WRITABLE;
     }
     if (origDesc) {
-      if (!changedDescriptors) {
-        changedDescriptors = [];
-      }
       changedDescriptors.push([key, origDesc]);
     }
     Reflect.defineProperty(copy, key, descriptor);
   }
-  if (changedDescriptors) {
+  if (changedDescriptors.length) {
     callbacks.push({
       func: restoreDescriptors,
       args: [copy, changedDescriptors],
