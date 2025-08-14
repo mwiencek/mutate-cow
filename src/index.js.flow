@@ -1,9 +1,5 @@
 // @flow strict
 
-export type MutatableObject =
-  | interface {}
-  | {__proto__: null, ...};
-
 export type KeyType<+T: mixed> =
   T extends $ReadOnlyArray<mixed> ? number :
   T extends {__proto__: null, ...} ? $Keys<T> :
@@ -135,6 +131,6 @@ declare export class CowContext<
   finalRoot(): R;
 }
 
-declare export default function mutate<T: MutatableObject>(
+declare export default function mutate<T>(
   source: T,
 ): CowRootContext<T>;

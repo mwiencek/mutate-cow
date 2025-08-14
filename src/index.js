@@ -5,7 +5,7 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import throwIfNotCloneable from './throwIfNotCloneable.js';
+import {throwIfNotCloneable} from './clone.js';
 import CowContext from './CowContext.js';
 
 export default function mutate(source) {

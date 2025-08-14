@@ -58,3 +58,12 @@ expectType<CowRootContext<RoRoot>>(ctx.update((rootCtx: CowRootContext<RoRoot>) 
 expectType<CowRootContext<RoRoot>>(ctx.update('obj', (childCtx: ObjContext) => undefined));
 expectError(ctx.update());
 expectError(ctx.update('no', 'updater'));
+
+expectType<CowRootContext<null>>(mutate(null));
+expectType<CowRootContext<undefined>>(mutate(undefined));
+expectType<CowRootContext<true>>(mutate(true));
+expectType<CowRootContext<false>>(mutate(false));
+expectType<CowRootContext<number>>(mutate(3));
+expectType<CowRootContext<bigint>>(mutate(BigInt('3')));
+expectType<CowRootContext<string>>(mutate(''));
+expectType<CowRootContext<symbol>>(mutate(Symbol('3')));

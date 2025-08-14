@@ -93,58 +93,15 @@ const unsupportedProperties/*: {
 };
 
 test('mutate', (t) => {
-  t.test('throws if you pass null', (t) => {
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate(null);
-    }, ERROR_CLONE);
-  });
-
-  t.test('throws if you pass undefined', (t) => {
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate(undefined);
-    }, ERROR_CLONE);
-  });
-
-  t.test('throws if you pass a boolean', (t) => {
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate(false);
-    }, ERROR_CLONE);
-
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate(true);
-    }, ERROR_CLONE);
-  });
-
-  t.test('throws if you pass a number', (t) => {
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate(0);
-    }, ERROR_CLONE);
-  });
-
-  t.test('throws if you pass a bigint', (t) => {
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate(BigInt('0'));
-    }, ERROR_CLONE);
-  });
-
-  t.test('throws if you pass a string', (t) => {
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate('');
-    }, ERROR_CLONE);
-  });
-
-  t.test('throws if you pass a symbol', (t) => {
-    assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
-      mutate(SYMBOL_KEY);
-    }, ERROR_CLONE);
+  t.test('can mutate primitives', (t) => {
+    assert.strictEqual(mutate/*:: <null | 7> */(null).set(7).final(), 7);
+    assert.strictEqual(mutate/*:: <void | 7> */(undefined).set(7).final(), 7);
+    assert.strictEqual(mutate/*:: <true | 7> */(true).set(7).final(), 7);
+    assert.strictEqual(mutate/*:: <false | 7> */(false).set(7).final(), 7);
+    assert.strictEqual(mutate/*:: <3 | 7> */(3).set(7).final(), 7);
+    assert.strictEqual(mutate/*:: <bigint | 7> */(BigInt('3')).set(7).final(), 7);
+    assert.strictEqual(mutate/*:: <'3' | 7> */('3').set(7).final(), 7);
+    assert.strictEqual(mutate/*:: <symbol | 7> */(Symbol('3')).set(7).final(), 7);
   });
 
   t.test('throws if you pass a derived built-in', (t) => {

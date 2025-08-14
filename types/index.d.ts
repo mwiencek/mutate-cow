@@ -7,7 +7,7 @@ type NestedProp<T, Path extends ReadonlyArray<PropertyKey>> =
     )
     : T;
 
-type NestedContext<T, R extends object, ParentContext extends CowAnyContext<R> | null, Path extends ReadonlyArray<PropertyKey>> =
+type NestedContext<T, R, ParentContext extends CowAnyContext<R> | null, Path extends ReadonlyArray<PropertyKey>> =
   Path extends [infer First, ...infer Rest]
     ? (
       First extends keyof T
@@ -20,14 +20,14 @@ type ShallowReadWrite<T> =
   T extends ReadonlyArray<infer V> ? Array<V> :
   T extends object ? {-readonly [K in keyof T]: T[K]} : never;
 
-type CowRootContext<R extends object> = CowContext<R, R, null>;
+type CowRootContext<R> = CowContext<R, R, null>;
 
-type CowAnyContext<R extends object> =
+type CowAnyContext<R> =
   CowContext<unknown, R, CowAnyContext<R> | null>;
 
 declare class CowContext<
   out T,
-  out R extends object,
+  out R,
   out ParentContext extends CowAnyContext<R> | null = CowAnyContext<R> | null,
 > {
   read(): T;
@@ -43,7 +43,7 @@ declare class CowContext<
   finalRoot(): R;
 }
 
-declare function mutate<T extends object>(
+declare function mutate<T>(
   source: T,
 ): CowRootContext<T>;
 

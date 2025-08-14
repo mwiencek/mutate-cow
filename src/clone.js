@@ -5,7 +5,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import throwIfNotCloneable from './throwIfNotCloneable.js';
 import {
   NON_CONFIGURABLE,
   NON_CONFIGURABLE_AND_WRITABLE,
@@ -26,6 +25,51 @@ function isPrimitive(value) {
   }
 }
 
+const funcToString = Function.prototype.toString;
+
+const nativeCodeRegExp = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
+
+function getCloneableType(value) {
+  if (isPrimitive(value)) {
+    return 1;
+  }
+  if (typeof value !== 'object') {
+    return 0;
+  }
+  let proto = Reflect.getPrototypeOf(value);
+  while (proto) {
+    let ctor = proto.constructor;
+    // A Generator object's constructor is an object.
+    if (ctor && typeof ctor === 'object') {
+      ctor = ctor.constructor;
+    }
+    if (
+      typeof ctor === 'function' &&
+      ctor.name !== 'Array' &&
+      ctor.name !== 'Object' &&
+      nativeCodeRegExp.test(funcToString.call(ctor))
+    ) {
+      return 0;
+    }
+    proto = Reflect.getPrototypeOf(proto);
+  }
+  return 2;
+}
+
+export function throwIfNotCloneable(value) {
+  throwIfTypeNotCloneable(getCloneableType(value));
+}
+
+function throwIfTypeNotCloneable(cloneableType) {
+  if (cloneableType === 0) {
+    throw new Error(
+      'Only plain objects, arrays, and class instances ' +
+      'can be cloned. Primitives, functions, and built-ins ' +
+      'are unsupported.',
+    );
+  }
+}
+
 function restoreDescriptors(copy, changedDescriptors) {
   for (let i = 0; i < changedDescriptors.length; i++) {
     const [name, origDesc] = changedDescriptors[i];
@@ -38,10 +82,11 @@ function restoreDescriptors(copy, changedDescriptors) {
 }
 
 export default function clone(source, callbacks) {
-  if (isPrimitive(source)) {
+  const cloneableType = getCloneableType(source);
+  throwIfTypeNotCloneable(cloneableType);
+  if (cloneableType === 1) {
     return source;
   }
-  throwIfNotCloneable(source);
   const proto = Reflect.getPrototypeOf(source);
   let changedDescriptors;
   let copy;
