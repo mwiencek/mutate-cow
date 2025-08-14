@@ -6,11 +6,10 @@
  */
 
 import clone from './clone.js';
-import {
-  STATUS_CHANGED,
-  STATUS_NONE,
-  STATUS_REVOKED,
-} from './constants.js';
+
+const STATUS_NONE = 1;
+const STATUS_CHANGED = 2;
+const STATUS_REVOKED = 3;
 
 const STALE_VALUE = Object.freeze(Object.create(null));
 

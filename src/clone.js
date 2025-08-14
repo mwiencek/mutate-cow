@@ -5,11 +5,19 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-import {
-  NON_CONFIGURABLE,
-  NON_CONFIGURABLE_AND_WRITABLE,
-  NON_WRITABLE,
-} from './constants.js';
+const NON_CONFIGURABLE = Object.freeze({configurable: false});
+
+const NON_WRITABLE = Object.freeze({writable: false});
+
+const NON_CONFIGURABLE_AND_WRITABLE = Object.freeze({
+  configurable: false,
+  writable: false,
+});
+
+const CONFIGURABLE_AND_WRITABLE = Object.freeze({
+  configurable: true,
+  writable: true,
+});
 
 function isPrimitive(value) {
   switch (typeof value) {
