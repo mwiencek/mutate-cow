@@ -1,50 +1,20 @@
 // @flow strict
 
-export type KeyType<+T: mixed> =
+export type KeyType<+T> =
   T extends $ReadOnlyArray<mixed> ? number :
-  T extends {__proto__: null, ...} ? $Keys<T> :
-  T extends interface {} ? $Keys<T> :
+  T extends ({__proto__: null, ...} | interface {}) ? $Keys<T> :
   empty;
-export type KeyType2<+T, +K1: KeyType<T>> =
-  PropType<T, K1> extends $ReadOnlyArray<mixed> ? number :
-  PropType<T, K1> extends {__proto__: null, ...} ? $Keys<PropType<T, K1>> :
-  PropType<T, K1> extends interface {} ? $Keys<PropType<T, K1>> :
-  empty;
-export type KeyType3<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>> =
-  PropType2<T, K1, K2> extends $ReadOnlyArray<mixed> ? number :
-  PropType2<T, K1, K2> extends {__proto__: null, ...} ? $Keys<PropType2<T, K1, K2>> :
-  PropType2<T, K1, K2> extends interface {} ? $Keys<PropType2<T, K1, K2>> :
-  empty;
-export type KeyType4<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>> =
-  PropType3<T, K1, K2, K3> extends $ReadOnlyArray<mixed> ? number :
-  PropType3<T, K1, K2, K3> extends {__proto__: null, ...} ? $Keys<PropType3<T, K1, K2, K3>> :
-  PropType3<T, K1, K2, K3> extends interface {} ? $Keys<PropType3<T, K1, K2, K3>> :
-  empty;
-export type KeyType5<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>> =
-  PropType4<T, K1, K2, K3, K4> extends $ReadOnlyArray<mixed> ? number :
-  PropType4<T, K1, K2, K3, K4> extends {__proto__: null, ...} ? $Keys<PropType4<T, K1, K2, K3, K4>> :
-  PropType4<T, K1, K2, K3, K4> extends interface {} ? $Keys<PropType4<T, K1, K2, K3, K4>> :
-  empty;
-export type KeyType6<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>> =
-  PropType5<T, K1, K2, K3, K4, K5> extends $ReadOnlyArray<mixed> ? number :
-  PropType5<T, K1, K2, K3, K4, K5> extends {__proto__: null, ...} ? $Keys<PropType5<T, K1, K2, K3, K4, K5>> :
-  PropType5<T, K1, K2, K3, K4, K5> extends interface {} ? $Keys<PropType5<T, K1, K2, K3, K4, K5>> :
-  empty;
-export type KeyType7<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>> =
-  PropType6<T, K1, K2, K3, K4, K5, K6> extends $ReadOnlyArray<mixed> ? number :
-  PropType6<T, K1, K2, K3, K4, K5, K6> extends {__proto__: null, ...} ? $Keys<PropType6<T, K1, K2, K3, K4, K5, K6>> :
-  PropType6<T, K1, K2, K3, K4, K5, K6> extends interface {} ? $Keys<PropType6<T, K1, K2, K3, K4, K5, K6>> :
-  empty;
-export type KeyType8<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>, +K7: KeyType7<T, K1, K2, K3, K4, K5, K6>> =
-  PropType7<T, K1, K2, K3, K4, K5, K6, K7> extends $ReadOnlyArray<mixed> ? number :
-  PropType7<T, K1, K2, K3, K4, K5, K6, K7> extends {__proto__: null, ...} ? $Keys<PropType7<T, K1, K2, K3, K4, K5, K6, K7>> :
-  PropType7<T, K1, K2, K3, K4, K5, K6, K7> extends interface {} ? $Keys<PropType7<T, K1, K2, K3, K4, K5, K6, K7>> :
-  empty;
+export type KeyType2<+T, +K1: KeyType<T>> = KeyType<PropType<T, K1>>;
+export type KeyType3<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>> = KeyType<PropType2<T, K1, K2>>;
+export type KeyType4<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>> = KeyType<PropType3<T, K1, K2, K3>>;
+export type KeyType5<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>> = KeyType<PropType4<T, K1, K2, K3, K4>>;
+export type KeyType6<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>> = KeyType<PropType5<T, K1, K2, K3, K4, K5>>;
+export type KeyType7<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>> = KeyType<PropType6<T, K1, K2, K3, K4, K5, K6>>;
+export type KeyType8<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>, +K7: KeyType7<T, K1, K2, K3, K4, K5, K6>> = KeyType<PropType7<T, K1, K2, K3, K4, K5, K6, K7>>;
 
-export type PropType<+T: mixed, +K: KeyType<T>> =
+export type PropType<+T, +K: KeyType<T>> =
   T extends $ReadOnlyArray<infer V> ? V :
-  T extends {__proto__: null, ...} ? T[K] :
-  T extends interface {} ? T[K] :
+  T extends ({__proto__: null, ...} | interface {}) ? T[K] :
   empty;
 export type PropType2<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>> =
   PropType<PropType<T, K1>, K2>;
