@@ -7,7 +7,7 @@
  */
 
 // $FlowIssue[cannot-resolve-module]
-import assert from 'node:assert';
+import assert from 'node:assert/strict';
 // $FlowIssue[cannot-resolve-module]
 import test from 'node:test';
 
@@ -94,14 +94,14 @@ const unsupportedProperties/*: {
 
 test('mutate', (t) => {
   t.test('can mutate primitives', (t) => {
-    assert.strictEqual(mutate/*:: <null | 7> */(null).set(7).final(), 7);
-    assert.strictEqual(mutate/*:: <void | 7> */(undefined).set(7).final(), 7);
-    assert.strictEqual(mutate/*:: <true | 7> */(true).set(7).final(), 7);
-    assert.strictEqual(mutate/*:: <false | 7> */(false).set(7).final(), 7);
-    assert.strictEqual(mutate/*:: <3 | 7> */(3).set(7).final(), 7);
-    assert.strictEqual(mutate/*:: <bigint | 7> */(BigInt('3')).set(7).final(), 7);
-    assert.strictEqual(mutate/*:: <'3' | 7> */('3').set(7).final(), 7);
-    assert.strictEqual(mutate/*:: <symbol | 7> */(Symbol('3')).set(7).final(), 7);
+    assert.equal(mutate/*:: <null | 7> */(null).set(7).final(), 7);
+    assert.equal(mutate/*:: <void | 7> */(undefined).set(7).final(), 7);
+    assert.equal(mutate/*:: <true | 7> */(true).set(7).final(), 7);
+    assert.equal(mutate/*:: <false | 7> */(false).set(7).final(), 7);
+    assert.equal(mutate/*:: <3 | 7> */(3).set(7).final(), 7);
+    assert.equal(mutate/*:: <bigint | 7> */(BigInt('3')).set(7).final(), 7);
+    assert.equal(mutate/*:: <'3' | 7> */('3').set(7).final(), 7);
+    assert.equal(mutate/*:: <symbol | 7> */(Symbol('3')).set(7).final(), 7);
   });
 
   t.test('throws if you pass a derived built-in', (t) => {
@@ -123,13 +123,13 @@ test('mutate', (t) => {
 
 test('read', (t) => {
   t.test('returns the original value if no changes were made', (t) => {
-    assert.strictEqual(mutate(people).read()[0].birth_date.year, 2100);
+    assert.equal(mutate(people).read()[0].birth_date.year, 2100);
   });
 
   t.test('returns the current changes', (t) => {
     const ctx = mutate(people);
     ctx.set(0, 'birth_date', 'year', 1988);
-    assert.strictEqual(ctx.read()[0].birth_date.year, 1988);
+    assert.equal(ctx.read()[0].birth_date.year, 1988);
   });
 
   t.test('throws if the context is revoked', (t) => {
@@ -144,20 +144,20 @@ test('read', (t) => {
 test('write', (t) => {
   t.test('forces a copy even if no changes are made', (t) => {
     const copy = mutate(alice).update(ctx => ctx.write()).final();
-    assert.notStrictEqual(copy, alice);
+    assert.notEqual(copy, alice);
   });
 
   t.test('returns the current changes', (t) => {
     const ctx = mutate(people);
     ctx.set(0, 'birth_date', 'year', 1988);
-    assert.strictEqual(ctx.write()[0].birth_date.year, 1988);
+    assert.equal(ctx.write()[0].birth_date.year, 1988);
   });
 
   t.test('allows pushing array values', (t) => {
     const copy = mutate(people)
       .update((ctx) => ctx.write().push(alice))
       .final();
-    assert.strictEqual(copy[2], alice);
+    assert.equal(copy[2], alice);
   });
 
   t.test('can be called on child primitives', (t) => {
@@ -166,7 +166,7 @@ test('write', (t) => {
     // $FlowIgnore[cannot-write]
     ctx.read().birth_date.year = 1988;
     const copy = ctx.final();
-    assert.strictEqual(copy.birth_date.year, 1988);
+    assert.equal(copy.birth_date.year, 1988);
   });
 
   t.test('throws if the context is revoked', (t) => {
@@ -181,19 +181,19 @@ test('write', (t) => {
 test('get', (t) => {
   t.test('returns `this` if no arguments are passed', (t) => {
     const ctx = mutate(alice);
-    assert.strictEqual(ctx.get(), ctx);
+    assert.equal(ctx.get(), ctx);
   });
 
   t.test('works with one prop', (t) => {
-    assert.strictEqual(mutate(alice).get('birth_date').read(), alice.birth_date);
+    assert.equal(mutate(alice).get('birth_date').read(), alice.birth_date);
   });
 
   t.test('works with two props', (t) => {
-    assert.strictEqual(mutate(alice).get('birth_date', 'year').read(), alice.birth_date.year);
+    assert.equal(mutate(alice).get('birth_date', 'year').read(), alice.birth_date.year);
   });
 
   t.test('chains with other get calls', (t) => {
-    assert.strictEqual(mutate(alice).get('birth_date').get('year').read(), alice.birth_date.year);
+    assert.equal(mutate(alice).get('birth_date').get('year').read(), alice.birth_date.year);
   });
 
   t.test('throws if the context is revoked', (t) => {
@@ -222,14 +222,14 @@ test('set', (t) => {
     let copy = mutate(alice)
       .set({...alice, birth_date: {...alice.birth_date, year: 1988}})
       .final();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
     copy = mutate(alice)
       .set(alice)
       .set('birth_date', 'year', 1999)
       .final();
-    assert.strictEqual(copy.birth_date.year, 1999);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1999);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('works directly on a child (one argument)', (t) => {
@@ -237,14 +237,14 @@ test('set', (t) => {
       .get('birth_date')
       .set({...alice.birth_date, year: 1988})
       .finalRoot();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
     copy = mutate(alice)
       .get('birth_date', 'year')
       .set(1999)
       .finalRoot();
-    assert.strictEqual(copy.birth_date.year, 1999);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1999);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('works with one prop', (t) => {
@@ -252,16 +252,16 @@ test('set', (t) => {
       .get('birth_date')
       .set('year', 1988)
       .finalRoot();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('works with two props', (t) => {
     const copy = mutate(alice)
       .set('birth_date', 'year', 1988)
       .final();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('chains with other set calls', (t) => {
@@ -269,8 +269,8 @@ test('set', (t) => {
       .set('birth_date', 'year', 1988)
       .set('death_date', 'year', 2088)
       .final();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date.year, 2088);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date.year, 2088);
     copy = mutate(alice)
       .get('birth_date')
       .set('year', 1990)
@@ -283,11 +283,11 @@ test('set', (t) => {
       .set('day', 30)
       .parent()
       .final();
-    assert.deepStrictEqual(
+    assert.deepEqual(
       copy.birth_date,
       {year: 1990, month: 10, day: 21},
     );
-    assert.deepStrictEqual(
+    assert.deepEqual(
       copy.death_date,
       {year: 2090, month: 11, day: 30},
     );
@@ -301,7 +301,7 @@ test('set', (t) => {
       .set('birth_date', 'year', alice.birth_date.year)
       .set('death_date', 'year', alice.death_date.year)
       .final();
-    assert.strictEqual(alice, copy1);
+    assert.equal(alice, copy1);
     const copy2 = mutate(people)
       .set(0, people[0])
       .set(0, 'name', people[0].name)
@@ -310,7 +310,7 @@ test('set', (t) => {
       .set(0, 'birth_date', 'year', people[0].birth_date.year)
       .set(0, 'death_date', 'year', people[0].death_date.year)
       .final();
-    assert.strictEqual(people, copy2);
+    assert.equal(people, copy2);
   });
 
   t.test('clones the object only once', (t) => {
@@ -319,7 +319,7 @@ test('set', (t) => {
     const newBirthDate1 = ctx.read().birth_date;
     ctx.get('birth_date').set('year', 1988);
     const newBirthDate2 = ctx.read().birth_date;
-    assert.strictEqual(newBirthDate1, newBirthDate2);
+    assert.equal(newBirthDate1, newBirthDate2);
   });
 
   t.test('throws if the context is revoked', (t) => {
@@ -351,7 +351,7 @@ test('set', (t) => {
     const copy = mutate(unsupportedProperties)
       .set('numberObject', new Number(2))
       .final();
-    assert.strictEqual(+copy.numberObject, 2);
+    assert.equal(+copy.numberObject, 2);
   });
 
   t.test('throws if called on a string object', (t) => {
@@ -367,7 +367,7 @@ test('set', (t) => {
     const copy = mutate(unsupportedProperties)
       .set('stringObject', new String('huh'))
       .final();
-    assert.strictEqual(String(copy.stringObject), 'huh');
+    assert.equal(String(copy.stringObject), 'huh');
   });
 
   t.test('throws if called on a Date object', (t) => {
@@ -432,12 +432,12 @@ test('set', (t) => {
       .final();
     assert.ok(copy instanceof NiceClass);
     assert.ok(copy instanceof NiceBase);
-    assert.strictEqual(copy.value, 'naughty');
-    assert.strictEqual(orig.value, 'nice');
+    assert.equal(copy.value, 'naughty');
+    assert.equal(orig.value, 'nice');
   });
 
   t.test('can set the length on arrays', (t) => {
-    assert.deepStrictEqual(
+    assert.deepEqual(
       // $FlowIgnore[incompatible-call]
       mutate([1, 2, 3]).set('length', 1).final(),
       [1],
@@ -450,7 +450,7 @@ test('set', (t) => {
       .set('customProp', 10)
       .final();
     // $FlowIgnore[prop-missing]
-    assert.strictEqual(copy.customProp, 10);
+    assert.equal(copy.customProp, 10);
   });
 
   t.test('works on cyclic references', (t) => {
@@ -465,12 +465,12 @@ test('set', (t) => {
       .set('x', null)
       .parent()
       .final();
-    assert.strictEqual((copy1.x?.x), null);
+    assert.equal((copy1.x?.x), null);
     const copy2 = mutate(orig)
       // $FlowIgnore[incompatible-call]
       .set('x', 'x', 'x', null)
       .final();
-    assert.strictEqual((copy2.x?.x?.x), null);
+    assert.equal((copy2.x?.x?.x), null);
   });
 
   t.test('propagates changes to parent contexts', (t) => {
@@ -482,9 +482,9 @@ test('set', (t) => {
     // Should propagate to birthDateContext1 and yearContext1
     ctx.set('birth_date', {year: 2008});
 
-    assert.strictEqual(ctx.get('birth_date').read().year, 2008);
-    assert.strictEqual(birthDateContext1.read().year, 2008);
-    assert.strictEqual(yearContext1.read(), 2008);
+    assert.equal(ctx.get('birth_date').read().year, 2008);
+    assert.equal(birthDateContext1.read().year, 2008);
+    assert.equal(yearContext1.read(), 2008);
   });
 
   t.test('works on shared references', (t) => {
@@ -500,8 +500,8 @@ test('set', (t) => {
       .set('prop1', 'foo', 'abc')
       .set('prop2', 'foo', '123')
       .final();
-    assert.strictEqual(copy.prop1.foo, 'abc');
-    assert.strictEqual(copy.prop2.foo, '123');
+    assert.equal(copy.prop1.foo, 'abc');
+    assert.equal(copy.prop2.foo, '123');
   });
 
   t.test('works on externally-frozen objects', (t) => {
@@ -513,17 +513,17 @@ test('set', (t) => {
       // $FlowIgnore[incompatible-call]
       .set('ref', 'name', 'hi')
       .final();
-    assert.strictEqual(copy.ref?.name, 'hi');
+    assert.equal(copy.ref?.name, 'hi');
   });
 
   t.test('works on symbol keys', (t) => {
     const rootCtx = mutate({[SYMBOL_KEY]: 1999, otherProp: 2000});
     rootCtx.set('otherProp', 2001);
     const symbolCtx = rootCtx.get(SYMBOL_KEY);
-    assert.strictEqual(symbolCtx.read(), 1999);
+    assert.equal(symbolCtx.read(), 1999);
     symbolCtx.set(2000);
-    assert.strictEqual(symbolCtx.read(), 2000);
-    assert.deepStrictEqual(rootCtx.final(), {[SYMBOL_KEY]: 2000, otherProp: 2001});
+    assert.equal(symbolCtx.read(), 2000);
+    assert.deepEqual(rootCtx.final(), {[SYMBOL_KEY]: 2000, otherProp: 2001});
   });
 
   t.test('works on array subclasses', (t) => {
@@ -542,8 +542,8 @@ test('set', (t) => {
     }).final();
 
     assert.ok(newArray instanceof SubArray);
-    assert.strictEqual(newArray.prop, 'value');
-    assert.deepStrictEqual([...newArray], [1, 2, 3, 4, 5, 6]);
+    assert.equal(newArray.prop, 'value');
+    assert.deepEqual([...newArray], [1, 2, 3, 4, 5, 6]);
   });
 });
 
@@ -551,45 +551,45 @@ test('update', (t) => {
   t.test('works directly on the root (one argument)', (t) => {
     const ctx = mutate(alice);
     ctx.update((ctx2) => {
-      assert.strictEqual(ctx, ctx2);
+      assert.equal(ctx, ctx2);
       ctx2.set('birth_date', 'year', 1988);
     });
     const copy = ctx.final();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('works directly on a child (one argument)', (t) => {
     const ctx = mutate(alice).get('birth_date');
     ctx.update((ctx2) => {
-      assert.strictEqual(ctx, ctx2);
+      assert.equal(ctx, ctx2);
       ctx2.set('year', 1988);
     });
     const copy = ctx.finalRoot();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('works with one prop', (t) => {
     const ctx = mutate(alice);
     ctx.update('birth_date', (ctx2) => {
-      assert.strictEqual(ctx.get('birth_date'), ctx2);
+      assert.equal(ctx.get('birth_date'), ctx2);
       ctx2.set('year', 1988);
     });
     const copy = ctx.finalRoot();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('works with two props', (t) => {
     const ctx = mutate(alice);
     ctx.update('birth_date', 'year', (ctx2) => {
-      assert.strictEqual(ctx.get('birth_date', 'year'), ctx2);
+      assert.equal(ctx.get('birth_date', 'year'), ctx2);
       ctx2.set(1988);
     });
     const copy = ctx.finalRoot();
-    assert.strictEqual(copy.birth_date.year, 1988);
-    assert.strictEqual(copy.death_date, aliceDeathDate);
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
   });
 
   t.test('chains with other update calls', (t) => {
@@ -603,19 +603,19 @@ test('update', (t) => {
 test('parent', (t) => {
   t.test('returns null on the root', (t) => {
     const ctx = mutate(alice);
-    assert.strictEqual(ctx.parent(), null);
+    assert.equal(ctx.parent(), null);
     ctx.revoke();
   });
 
   t.test('returns the parent of a child context', (t) => {
     const ctx = mutate(alice);
-    assert.strictEqual(ctx.get('birth_date').parent(), ctx);
+    assert.equal(ctx.get('birth_date').parent(), ctx);
     ctx.revoke();
   });
 
   t.test('returns the parent of a grandchild context', (t) => {
     const ctx = mutate(alice);
-    assert.strictEqual(ctx.get('birth_date', 'year').parent(), ctx.get('birth_date'));
+    assert.equal(ctx.get('birth_date', 'year').parent(), ctx.get('birth_date'));
     ctx.revoke();
   });
 });
@@ -623,19 +623,19 @@ test('parent', (t) => {
 test('root', (t) => {
   t.test('returns the root on the root', (t) => {
     const ctx = mutate(alice);
-    assert.strictEqual(ctx.root(), ctx);
+    assert.equal(ctx.root(), ctx);
     ctx.revoke();
   });
 
   t.test('returns the root of a child context', (t) => {
     const ctx = mutate(alice);
-    assert.strictEqual(ctx.get('birth_date').root(), ctx);
+    assert.equal(ctx.get('birth_date').root(), ctx);
     ctx.revoke();
   });
 
   t.test('returns the root of a grandchild context', (t) => {
     const ctx = mutate(alice);
-    assert.strictEqual(ctx.get('birth_date', 'year').root(), ctx);
+    assert.equal(ctx.get('birth_date', 'year').root(), ctx);
     ctx.revoke();
   });
 });
@@ -679,14 +679,14 @@ test('final', (t) => {
     const fooCopy = fooCtx.set('bar', 'a').final();
 
     assert.ok(Object.isFrozen(fooCopy));
-    assert.strictEqual(fooCopy.bar, 'a');
+    assert.equal(fooCopy.bar, 'a');
 
     const rootCopy = rootCtx
       .set('foo', 'bar', 'b')
       .final();
 
     assert.ok(Object.isFrozen(rootCopy));
-    assert.strictEqual(rootCopy.foo.bar, 'b');
+    assert.equal(rootCopy.foo.bar, 'b');
   });
 
   t.test('preserves frozenness of objects', (t) => {
@@ -703,8 +703,8 @@ test('final', (t) => {
         ctx.write().push(alice);
       })
       .final();
-    assert.strictEqual(copy[0].birth_date.year, 1988);
-    assert.strictEqual(copy[1], alice);
+    assert.equal(copy[0].birth_date.year, 1988);
+    assert.equal(copy[1], alice);
     assert.ok(Object.isFrozen(copy));
     assert.ok(Object.isFrozen(copy[0]));
     assert.ok(Object.isFrozen(copy[0].birth_date));
@@ -751,14 +751,14 @@ test('final', (t) => {
     // $FlowIgnore[incompatible-call]
     const copy = mutate(orig).set('a', '1').final();
     const copyDescriptors = Object.getOwnPropertyDescriptors(copy);
-    assert.deepStrictEqual(copyDescriptors.a, {...origDescriptors.a, value: '1'});
-    assert.deepStrictEqual(copyDescriptors.b, origDescriptors.b);
-    assert.deepStrictEqual(copyDescriptors.c, origDescriptors.c);
-    assert.deepStrictEqual(copyDescriptors.d, origDescriptors.d);
-    assert.deepStrictEqual(copyDescriptors.e, origDescriptors.e);
-    assert.deepStrictEqual(copyDescriptors.f, origDescriptors.f);
-    assert.deepStrictEqual(copyDescriptors.g, origDescriptors.g);
-    assert.deepStrictEqual(copyDescriptors.h, origDescriptors.h);
+    assert.deepEqual(copyDescriptors.a, {...origDescriptors.a, value: '1'});
+    assert.deepEqual(copyDescriptors.b, origDescriptors.b);
+    assert.deepEqual(copyDescriptors.c, origDescriptors.c);
+    assert.deepEqual(copyDescriptors.d, origDescriptors.d);
+    assert.deepEqual(copyDescriptors.e, origDescriptors.e);
+    assert.deepEqual(copyDescriptors.f, origDescriptors.f);
+    assert.deepEqual(copyDescriptors.g, origDescriptors.g);
+    assert.deepEqual(copyDescriptors.h, origDescriptors.h);
   });
 
   t.test('does not restore descriptors onto stale copies', (t) => {
@@ -778,11 +778,11 @@ test('final', (t) => {
     const rootCopy = rootCtx.finalRoot();
     assert.ok(Object.isFrozen(rootCopy));
     assert.ok(Object.isFrozen(rootCopy.foo));
-    assert.strictEqual(rootCopy.foo.bar, 'c');
+    assert.equal(rootCopy.foo.bar, 'c');
 
     // `tmpFoo` is stale
     assert.ok(!Object.isFrozen(tmpFoo));
-    assert.strictEqual(tmpFoo.bar, 'a');
+    assert.equal(tmpFoo.bar, 'a');
   });
 
   t.test('preserves null prototypes', (t) => {
@@ -811,9 +811,9 @@ test('final', (t) => {
       .parent()
       .final();
 
-    assert.strictEqual(orig.value.number, 1);
-    assert.strictEqual(copy.value.number, 2);
-    assert.strictEqual(Object.getPrototypeOf(copy), null);
-    assert.strictEqual(Object.getPrototypeOf(copy.value), null);
+    assert.equal(orig.value.number, 1);
+    assert.equal(copy.value.number, 2);
+    assert.equal(Object.getPrototypeOf(copy), null);
+    assert.equal(Object.getPrototypeOf(copy.value), null);
   });
 });
