@@ -22,8 +22,6 @@ function isPrimitive(value) {
   return (type !== 'function' && type !== 'object');
 }
 
-const funcToString = Function.prototype.toString;
-
 const nativeCodeRegExp = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
 
 function getCloneableType(value) {
@@ -44,7 +42,7 @@ function getCloneableType(value) {
       typeof ctor === 'function' &&
       ctor.name !== 'Array' &&
       ctor.name !== 'Object' &&
-      nativeCodeRegExp.test(funcToString.call(ctor))
+      nativeCodeRegExp.test(Function.prototype.toString.call(ctor))
     ) {
       return 0;
     }
