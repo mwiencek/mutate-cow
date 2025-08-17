@@ -5,6 +5,14 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
+const NATIVE_CODE_REGEXP = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
+
+const STATUS_NONE = 1;
+const STATUS_CHANGED = 2;
+const STATUS_REVOKED = 3;
+
+const STALE_VALUE = Object.freeze(Object.create(null));
+
 function isPrimitive(value) {
   if (value === null) {
     return true;
@@ -12,8 +20,6 @@ function isPrimitive(value) {
   const type = typeof value;
   return (type !== 'function' && type !== 'object');
 }
-
-const nativeCodeRegExp = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
 
 function getCloneableType(value) {
   if (isPrimitive(value)) {
@@ -33,7 +39,7 @@ function getCloneableType(value) {
       typeof ctor === 'function' &&
       ctor.name !== 'Array' &&
       ctor.name !== 'Object' &&
-      nativeCodeRegExp.test(Function.prototype.toString.call(ctor))
+      NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
     ) {
       return 0;
     }
@@ -123,12 +129,6 @@ function clone(source, callbacks) {
   }
   return copy;
 }
-
-const STATUS_NONE = 1;
-const STATUS_CHANGED = 2;
-const STATUS_REVOKED = 3;
-
-const STALE_VALUE = Object.freeze(Object.create(null));
 
 export class CowContext {
   constructor(source, prop, parent) {
