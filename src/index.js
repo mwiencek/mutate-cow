@@ -162,8 +162,7 @@ export class CowContext {
     }
   }
 
-  _getPropValue(prop) {
-    const target = this.read();
+  _getPropDescriptor(target, prop) {
     const descriptor = Reflect.getOwnPropertyDescriptor(target, prop);
     if (descriptor) {
       if (descriptor.get) {
@@ -172,6 +171,14 @@ export class CowContext {
       if (descriptor.set) {
         throw new Error('Setters are unsupported.');
       }
+      return descriptor;
+    }
+  }
+
+  _getPropValue(prop) {
+    const target = this.read();
+    const descriptor = this._getPropDescriptor(target, prop);
+    if (descriptor) {
       return descriptor.value;
     }
     return Reflect.get(target, prop);
@@ -245,9 +252,8 @@ export class CowContext {
   }
 
   _set(prop, newValue) {
-    const origValue = this._getPropValue(prop);
-
-    if (!Object.is(origValue, newValue)) {
+    const descriptor = this._getPropDescriptor(this.read(), prop);
+    if (descriptor === undefined || !Object.is(descriptor.value, newValue)) {
       this._copyForWrite();
       this._result[prop] = newValue;
 

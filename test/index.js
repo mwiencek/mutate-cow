@@ -545,6 +545,15 @@ test('set', (t) => {
     assert.equal(newArray.prop, 'value');
     assert.deepEqual([...newArray], [1, 2, 3, 4, 5, 6]);
   });
+
+  t.test('can set a non-existent property to undefined', (t) => {
+    assert.deepEqual(
+      mutate/*:: <{+a?: void}> */({})
+        .set('a', undefined)
+        .final(),
+      {a: undefined},
+    );
+  });
 });
 
 test('update', (t) => {
