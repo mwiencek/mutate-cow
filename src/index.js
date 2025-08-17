@@ -15,17 +15,11 @@ const NON_CONFIGURABLE_AND_WRITABLE = Object.freeze({
 });
 
 function isPrimitive(value) {
-  switch (typeof value) {
-    case 'bigint':
-    case 'boolean':
-    case 'number':
-    case 'string':
-    case 'symbol':
-    case 'undefined':
-      return true;
-    default:
-      return value === null;
+  if (value === null) {
+    return true;
   }
+  const type = typeof value;
+  return (type !== 'function' && type !== 'object');
 }
 
 const funcToString = Function.prototype.toString;
