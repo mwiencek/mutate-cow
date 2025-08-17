@@ -10,8 +10,7 @@ const NATIVE_CODE_REGEXP = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
 const STATUS_NONE = 1;
 const STATUS_CHANGED = 2;
 const STATUS_REVOKED = 3;
-
-const STALE_VALUE = Object.freeze(Object.create(null));
+const STATUS_STALE = 4;
 
 function isPrimitive(value) {
   if (value === null) {
@@ -183,16 +182,15 @@ export class CowContext {
   }
 
   _getSource() {
-    let source = this._source;
-    if (source === STALE_VALUE) {
+    if (this._status === STATUS_STALE) {
       /*
        * `this._parent` should always be defined here, because we only
-       * ever assign `STALE_VALUE` onto child contexts.
+       * ever set `STATUS_STALE` onto child contexts.
        */
-      source = this._parent._getPropValue(this._prop);
-      this._source = source;
+      this._source = this._parent._getPropValue(this._prop);
+      this._status = STATUS_NONE;
     }
-    return source;
+    return this._source;
   }
 
   _throwIfRevoked() {
@@ -263,10 +261,10 @@ export class CowContext {
       if (children) {
         const child = children.get(prop);
         if (child) {
-          child._source = STALE_VALUE;
+          child._source = null;
           child._callbacks = [];
           child._result = null;
-          child._status = STATUS_NONE;
+          child._status = STATUS_STALE;
         }
       }
     }
