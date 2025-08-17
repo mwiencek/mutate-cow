@@ -14,11 +14,6 @@ const NON_CONFIGURABLE_AND_WRITABLE = Object.freeze({
   writable: false,
 });
 
-const CONFIGURABLE_AND_WRITABLE = Object.freeze({
-  configurable: true,
-  writable: true,
-});
-
 function isPrimitive(value) {
   switch (typeof value) {
     case 'bigint':
