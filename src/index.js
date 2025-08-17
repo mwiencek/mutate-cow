@@ -47,10 +47,6 @@ function getCloneableType(value) {
   return 2;
 }
 
-function throwIfNotCloneable(value) {
-  throwIfTypeNotCloneable(getCloneableType(value));
-}
-
 function throwIfTypeNotCloneable(cloneableType) {
   if (cloneableType === 0) {
     throw new Error(
@@ -354,6 +350,6 @@ export class CowContext {
 }
 
 export default function mutate(source) {
-  throwIfNotCloneable(source);
+  throwIfTypeNotCloneable(getCloneableType(source));
   return new CowContext(source, null, null);
 }
