@@ -1,3 +1,5 @@
+*.test.flow
+*.code-workspace
 .flowconfig
 .yarn/
 .yarnrc.yml
