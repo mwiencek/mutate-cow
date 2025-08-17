@@ -5,15 +5,6 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-const NON_CONFIGURABLE = Object.freeze({configurable: false});
-
-const NON_WRITABLE = Object.freeze({writable: false});
-
-const NON_CONFIGURABLE_AND_WRITABLE = Object.freeze({
-  configurable: false,
-  writable: false,
-});
-
 function isPrimitive(value) {
   if (value === null) {
     return true;
@@ -94,17 +85,14 @@ function clone(source, callbacks) {
   for (let i = 0; i < ownKeys.length; i++) {
     const key = ownKeys[i];
     const descriptor = Object.getOwnPropertyDescriptor(source, key);
-    const nonConfigurable = descriptor.configurable === false;
     let origDesc;
-    if (nonConfigurable) {
+    if (descriptor.configurable === false) {
       descriptor.configurable = true;
-      origDesc = NON_CONFIGURABLE;
+      origDesc = {configurable: false};
     }
     if (descriptor.writable === false) {
       descriptor.writable = true;
-      origDesc = nonConfigurable
-        ? NON_CONFIGURABLE_AND_WRITABLE
-        : NON_WRITABLE;
+      origDesc = {...origDesc, writable: false};
     }
     if (origDesc) {
       changedDescriptors.push([key, origDesc]);
