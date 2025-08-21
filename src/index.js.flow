@@ -68,7 +68,7 @@ export type GetCowContextRoot<+C> =
     ? (P extends null ? C : GetCowContextRoot<P>)
     : empty;
 
-declare class CowContext<
+declare export class CowContext<
  +T,
  +ParentContext: CowAnyContext | null = CowAnyContext | null,
 >{
