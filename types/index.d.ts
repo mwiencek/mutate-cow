@@ -45,6 +45,7 @@ declare class CowContext<
   get<Path extends ReadonlyArray<PropertyKey>>(...path: Path): NestedContext<T, ParentContext, Path>;
   set<Path extends ReadonlyArray<PropertyKey>>(...args: [...Path, NestedProp<T, Path>]): this;
   update<Path extends ReadonlyArray<PropertyKey>>(...args: [...Path, (childContext: NestedContext<T, ParentContext, Path>) => unknown]): this;
+  dangerouslySetAsMutable(): void;
   parent(): ParentContext;
   root(): GetCowContextRoot<this>;
   revoke(): void;

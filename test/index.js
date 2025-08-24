@@ -647,6 +647,46 @@ test('update', (t) => {
   });
 });
 
+test('dangerouslySetAsMutable', (t) => {
+  t.test('updates parent and child contexts', (t) => {
+    const ctx = mutate(alice);
+    const birthDateCtx = ctx.get('birth_date');
+    const birthYearCtx = birthDateCtx.get('year');
+
+    birthYearCtx.set(1988);
+    assert.equal(birthYearCtx.read(), 1988);
+
+    const mutableBirthDate = {year: 2000};
+    birthDateCtx.set(mutableBirthDate);
+    birthDateCtx.dangerouslySetAsMutable();
+    assert.equal(birthYearCtx.read(), 2000);
+    assert.equal(birthYearCtx.read(), 2000);
+
+    birthDateCtx.set('year', 1979);
+    assert.equal(birthYearCtx.read(), 1979);
+    assert.equal(ctx.read().birth_date.year, 1979);
+    assert.equal(mutableBirthDate.year, 1979);
+
+    ctx.set('birth_date', 'year', 1966);
+    assert.equal(birthYearCtx.read(), 1966);
+    assert.equal(birthDateCtx.read().year, 1966);
+    assert.equal(mutableBirthDate.year, 1966);
+
+    assert.deepEqual(
+      ctx.final(),
+      {...alice, birth_date: mutableBirthDate},
+    );
+  });
+
+  t.test('throws if the context is revoked', (t) => {
+    const ctx = mutate(alice);
+    ctx.revoke();
+    assert.throws(() => {
+      ctx.dangerouslySetAsMutable();
+    }, ERROR_REVOKED);
+  });
+});
+
 test('parent', (t) => {
   t.test('returns null on the root', (t) => {
     const ctx = mutate(alice);

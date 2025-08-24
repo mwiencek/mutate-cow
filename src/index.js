@@ -8,7 +8,7 @@
 const NATIVE_CODE_REGEXP = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
 
 const STATUS_NONE = 1;
-const STATUS_CHANGED = 2;
+const STATUS_MUTABLE = 2;
 const STATUS_REVOKED = 3;
 const STATUS_STALE = 4;
 
@@ -139,14 +139,14 @@ export class CowContext {
   _copyForWrite() {
     const status = this._status;
     if (
-      status === STATUS_CHANGED ||
+      status === STATUS_MUTABLE ||
       status === STATUS_REVOKED
     ) {
       return;
     }
     const stack = [];
     let parent = this;
-    while (parent && parent._status !== STATUS_CHANGED) {
+    while (parent && parent._status !== STATUS_MUTABLE) {
       stack.push(parent);
       parent = parent._parent;
     }
@@ -158,7 +158,7 @@ export class CowContext {
       if (context._parent) {
         context._parent._result[context._prop] = context._result;
       }
-      context._status = STATUS_CHANGED;
+      context._status = STATUS_MUTABLE;
     }
   }
 
@@ -206,7 +206,7 @@ export class CowContext {
 
   read() {
     this._throwIfRevoked();
-    return this._status === STATUS_CHANGED ? this._result : this._getSource();
+    return this._status === STATUS_MUTABLE ? this._result : this._getSource();
   }
 
   write() {
@@ -245,7 +245,7 @@ export class CowContext {
   _replace(value) {
     const parent = this._parent;
     if (parent) {
-      parent.set(this._prop, value);
+      parent._setIfChanged(this._prop, value);
     } else {
       this._source = value;
       this._status = STATUS_NONE;
@@ -258,23 +258,25 @@ export class CowContext {
   }
 
   _set(prop, newValue) {
-    const descriptor = this._getPropDescriptor(this.read(), prop);
-    if (descriptor === undefined || !Object.is(descriptor.value, newValue)) {
-      this._copyForWrite();
-      this._result[prop] = newValue;
+    this._copyForWrite();
+    this._result[prop] = newValue;
 
-      // Child source values must be invalidated, because they can
-      // reference a previous copy we made.
-      const children = this._children;
-      if (children) {
-        const child = children.get(prop);
-        if (child) {
-          child._setStale();
-        }
+    // Child source values must be invalidated, because they can
+    // reference a previous copy we made.
+    const children = this._children;
+    if (children) {
+      const child = children.get(prop);
+      if (child) {
+        child._setStale();
       }
     }
+  }
 
-    return this;
+  _setIfChanged(prop, newValue) {
+    const descriptor = this._getPropDescriptor(this.read(), prop);
+    if (descriptor === undefined || !Object.is(descriptor.value, newValue)) {
+      this._set(prop, newValue);
+    }
   }
 
   _setStale() {
@@ -301,7 +303,7 @@ export class CowContext {
     const lastProp = hasProps ? args.pop() : undefined;
     const ctx = hasProps ? this.get(...args) : this;
     if (hasProps) {
-      ctx._set(lastProp, newValue);
+      ctx._setIfChanged(lastProp, newValue);
     } else {
       ctx._replace(newValue);
     }
@@ -312,6 +314,22 @@ export class CowContext {
     const updater = args.pop();
     updater(this.get(...args));
     return this;
+  }
+
+  dangerouslySetAsMutable() {
+    this._throwIfRevoked();
+    const source = this._getSource();
+    // N.B. This may be (dangerously) equal to `source`.
+    const mutableValue = this.read();
+    const parent = this._parent;
+    if (parent) {
+      parent._set(this._prop, mutableValue);
+    }
+    this._source = source;
+    this._result = mutableValue;
+    this._status = STATUS_MUTABLE;
+    this._callbacks.length = 0;
+    this._setAllChildrenAsStale();
   }
 
   parent() {
