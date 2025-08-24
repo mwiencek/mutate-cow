@@ -248,6 +248,12 @@ export class CowContext {
       parent.set(this._prop, value);
     } else {
       this._source = value;
+      this._status = STATUS_NONE;
+      this._callbacks.length = 0;
+      this._result = null;
+      // Child source values must be invalidated, because they can
+      // reference a previous copy we made.
+      this._setAllChildrenAsStale();
     }
   }
 
@@ -263,15 +269,29 @@ export class CowContext {
       if (children) {
         const child = children.get(prop);
         if (child) {
-          child._source = null;
-          child._callbacks = [];
-          child._result = null;
-          child._status = STATUS_STALE;
+          child._setStale();
         }
       }
     }
 
     return this;
+  }
+
+  _setStale() {
+    this._source = null;
+    this._callbacks.length = 0;
+    this._result = null;
+    this._status = STATUS_STALE;
+    this._setAllChildrenAsStale();
+  }
+
+  _setAllChildrenAsStale() {
+    const children = this._children;
+    if (children) {
+      for (const child of children.values()) {
+        child._setStale();
+      }
+    }
   }
 
   set(...args) {

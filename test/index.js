@@ -230,6 +230,44 @@ test('set', (t) => {
       .final();
     assert.equal(copy.birth_date.year, 1999);
     assert.equal(copy.death_date, aliceDeathDate);
+
+    // This should revert `birth_date.year` change.
+    copy = mutate(alice)
+      .set('birth_date', 'year', 1999)
+      .set(alice)
+      .final();
+    assert.equal(copy.birth_date, aliceBirthDate);
+    assert.equal(copy.death_date, aliceDeathDate);
+
+    // This should preserve the `birth_date.year` change.
+    copy = mutate(alice)
+      .set('birth_date', 'year', 1999)
+      .set(alice)
+      .set('birth_date', 'year', 1999)
+      .final();
+    assert.equal(copy.birth_date.year, 1999);
+    assert.equal(copy.death_date, aliceDeathDate);
+
+    // This should also preserve the `birth_date.year` change.
+    const ctx = mutate(alice);
+    const birthYearCtx = ctx.get('birth_date', 'year');
+    ctx
+      .set('birth_date', 'year', 1999)
+      .set(alice);
+    birthYearCtx.set(1999);
+    copy = ctx.final();
+    assert.equal(copy.birth_date.year, 1999);
+    assert.equal(copy.death_date, aliceDeathDate);
+
+    // This should also preserve the `birth_date.year` change.
+    const ctx2 = mutate(people);
+    const birthYearCtx2 = ctx2.get(0, 'birth_date', 'year');
+    birthYearCtx2.set(1988);
+    ctx2.set(people);
+    birthYearCtx2.set(1999);
+    const peopleCopy = ctx2.final();
+    assert.equal(peopleCopy[0].birth_date.year, 1999);
+    assert.equal(peopleCopy[0].death_date, aliceDeathDate);
   });
 
   t.test('works directly on a child (one argument)', (t) => {
