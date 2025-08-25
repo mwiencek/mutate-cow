@@ -92,35 +92,6 @@ const unsupportedProperties/*: {
   setObject: new Set(),
 };
 
-test('mutate', (t) => {
-  t.test('can mutate primitives', (t) => {
-    assert.equal(mutate/*:: <null | 7> */(null).set(7).final(), 7);
-    assert.equal(mutate/*:: <void | 7> */(undefined).set(7).final(), 7);
-    assert.equal(mutate/*:: <true | 7> */(true).set(7).final(), 7);
-    assert.equal(mutate/*:: <false | 7> */(false).set(7).final(), 7);
-    assert.equal(mutate/*:: <3 | 7> */(3).set(7).final(), 7);
-    assert.equal(mutate/*:: <bigint | 7> */(BigInt('3')).set(7).final(), 7);
-    assert.equal(mutate/*:: <'3' | 7> */('3').set(7).final(), 7);
-    assert.equal(mutate/*:: <symbol | 7> */(Symbol('3')).set(7).final(), 7);
-  });
-
-  t.test('throws if you pass a derived built-in', (t) => {
-    class FunDate extends Date {}
-    assert.throws(() => {
-      mutate(new FunDate());
-    }, ERROR_CLONE);
-  });
-
-  t.test('throws if you pass a generator', (t) => {
-    function* makeGenerator() {
-      yield 1;
-    }
-    assert.throws(() => {
-      mutate(makeGenerator());
-    }, ERROR_CLONE);
-  });
-});
-
 test('read', (t) => {
   t.test('returns the original value if no changes were made', (t) => {
     assert.equal(mutate(people).read()[0].birth_date.year, 2100);
@@ -167,6 +138,22 @@ test('write', (t) => {
     ctx.read().birth_date.year = 1988;
     const copy = ctx.final();
     assert.equal(copy.birth_date.year, 1988);
+  });
+
+  t.test('throws if you pass a derived built-in', (t) => {
+    class FunDate extends Date {}
+    assert.throws(() => {
+      mutate(new FunDate()).write();
+    }, /FunDate objects are not supported/);
+  });
+
+  t.test('throws if you pass a generator', (t) => {
+    function* makeGenerator() {
+      yield 1;
+    }
+    assert.throws(() => {
+      mutate(makeGenerator()).write();
+    }, /\[object GeneratorFunction\] objects are not supported/);
   });
 
   t.test('throws if the context is revoked', (t) => {
@@ -268,6 +255,17 @@ test('set', (t) => {
     const peopleCopy = ctx2.final();
     assert.equal(peopleCopy[0].birth_date.year, 1999);
     assert.equal(peopleCopy[0].death_date, aliceDeathDate);
+  });
+
+  t.test('works directly on the root (one argument, primitives)', (t) => {
+    assert.equal(mutate/*:: <null | 7> */(null).set(7).final(), 7);
+    assert.equal(mutate/*:: <void | 7> */(undefined).set(7).final(), 7);
+    assert.equal(mutate/*:: <true | 7> */(true).set(7).final(), 7);
+    assert.equal(mutate/*:: <false | 7> */(false).set(7).final(), 7);
+    assert.equal(mutate/*:: <3 | 7> */(3).set(7).final(), 7);
+    assert.equal(mutate/*:: <bigint | 7> */(BigInt('3')).set(7).final(), 7);
+    assert.equal(mutate/*:: <'3' | 7> */('3').set(7).final(), 7);
+    assert.equal(mutate/*:: <symbol | 7> */(Symbol('3')).set(7).final(), 7);
   });
 
   t.test('works directly on a child (one argument)', (t) => {
@@ -377,7 +375,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('func').set('error', null);
-    }, ERROR_CLONE);
+    }, /Function objects are not supported/);
   });
 
   t.test('throws if called on a number object', (t) => {
@@ -385,7 +383,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('numberObject').set('error', null);
-    }, ERROR_CLONE);
+    }, /Number objects are not supported/);
   });
 
   t.test('can set number objects directly', (t) => {
@@ -401,7 +399,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('stringObject').set('error', null);
-    }, ERROR_CLONE);
+    }, /String objects are not supported/);
   });
 
   t.test('can set string objects directly', (t) => {
@@ -417,7 +415,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('dateObject').set('error', null);
-    }, ERROR_CLONE);
+    }, /Date objects are not supported/);
   });
 
   t.test('throws if called on a TypedArray object', (t) => {
@@ -426,7 +424,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('typedArrayObject').set('error', null);
-    }, ERROR_CLONE);
+    }, /Int8Array objects are not supported/);
   });
 
   t.test('throws if called on a RegExp object', (t) => {
@@ -435,7 +433,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('regExpObject').set('error', null);
-    }, ERROR_CLONE);
+    }, /RegExp objects are not supported/);
   });
 
   t.test('throws if called on a Map object', (t) => {
@@ -444,7 +442,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('mapObject').set('error', null);
-    }, ERROR_CLONE);
+    }, /Map objects are not supported/);
   });
 
   t.test('throws if called on a Set object', (t) => {
@@ -453,7 +451,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowIgnore[incompatible-call]
       ctx.get('setObject').set('error', null);
-    }, ERROR_CLONE);
+    }, /Set objects are not supported/);
   });
 
   t.test('works on class instances', (t) => {

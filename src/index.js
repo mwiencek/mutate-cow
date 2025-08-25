@@ -20,18 +20,18 @@ function isPrimitive(value) {
   return (type !== 'function' && type !== 'object');
 }
 
-function getCloneableType(value) {
-  if (isPrimitive(value)) {
-    return 1;
+function isCloneableObject(object) {
+  if (typeof object === 'function') {
+    return false;
   }
-  if (typeof value !== 'object') {
-    return 0;
-  }
-  let proto = Object.getPrototypeOf(value);
+  let proto = Object.getPrototypeOf(object);
   while (proto) {
     let ctor = proto.constructor;
+    if (!ctor) {
+      continue;
+    }
     // A Generator object's constructor is an object.
-    if (ctor && typeof ctor === 'object') {
+    if (typeof ctor === 'object') {
       ctor = ctor.constructor;
     }
     if (
@@ -40,20 +40,22 @@ function getCloneableType(value) {
       ctor.name !== 'Object' &&
       NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
     ) {
-      return 0;
+      return false;
     }
     proto = Object.getPrototypeOf(proto);
   }
-  return 2;
+  return true;
 }
 
-function throwIfTypeNotCloneable(cloneableType) {
-  if (cloneableType === 0) {
-    throw new Error(
-      'Only plain objects, arrays, and class instances ' +
-      'can be cloned. Primitives, functions, and built-ins ' +
-      'are unsupported.',
-    );
+function printConstructor(object) {
+  const ctor = object.constructor;
+  switch (typeof ctor) {
+    case 'function':
+      return ctor.name;
+    case 'object':
+      return Object.prototype.toString.call(ctor);
+    default:
+      return '';
   }
 }
 
@@ -69,10 +71,14 @@ function restoreDescriptors(copy, changedDescriptors) {
 }
 
 function clone(source, callbacks) {
-  const cloneableType = getCloneableType(source);
-  throwIfTypeNotCloneable(cloneableType);
-  if (cloneableType === 1) {
+  if (isPrimitive(source)) {
     return source;
+  }
+  if (!isCloneableObject(source)) {
+    throw new Error(
+      printConstructor(source) +
+      ' objects are not supported for cloning.',
+    );
   }
   const proto = Object.getPrototypeOf(source);
   let changedDescriptors = [];
@@ -398,6 +404,5 @@ export class CowContext {
 }
 
 export default function mutate(source) {
-  throwIfTypeNotCloneable(getCloneableType(source));
   return new CowContext(source, null, null);
 }
