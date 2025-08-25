@@ -1,5 +1,5 @@
-mutate-cow x 6,134 ops/sec ±0.62% (97 runs sampled)
-immer x 3,163 ops/sec ±0.26% (96 runs sampled)
-mutative x 4,467 ops/sec ±1.06% (91 runs sampled)
-object spread x 32,296 ops/sec ±0.11% (98 runs sampled)
+mutate-cow x 37,318 ops/sec ±0.29% (99 runs sampled)
+immer x 7,491 ops/sec ±0.17% (100 runs sampled)
+mutative x 12,151 ops/sec ±1.67% (99 runs sampled)
+object spread x 65,008 ops/sec ±0.61% (96 runs sampled)
 Fastest is object spread
