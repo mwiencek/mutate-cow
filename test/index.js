@@ -64,8 +64,6 @@ const people/*: ReadOnlyPeople */ = Object.freeze([alice, alice]);
 
 const unsupportedProperties/*: {
   _value: string,
-  +getValue: string,
-  -setValue: string,
   +func: () => string,
   +numberObject: Number,
   +stringObject: String,
@@ -76,12 +74,6 @@ const unsupportedProperties/*: {
   +setObject: Set<empty>,
 } */ = {
   _value: '',
-  get getValue()/*: string */ {
-    return unsupportedProperties._value;
-  },
-  set setValue(x/*: string */) {
-    unsupportedProperties._value = x;
-  },
   func: () => '',
   numberObject: new Number(1),
   stringObject: new String(''),
@@ -189,18 +181,6 @@ test('get', (t) => {
     assert.throws(() => {
       ctx.get('birth_date');
     }, ERROR_REVOKED);
-  });
-
-  t.test('throws on getters and setters', (t) => {
-    const ctx = mutate(unsupportedProperties);
-
-    assert.throws(() => {
-      ctx.get('getValue');
-    }, /^Error: Getters are unsupported\.$/);
-
-    assert.throws(() => {
-      ctx.get('setValue');
-    }, /^Error: Setters are unsupported\.$/);
   });
 });
 

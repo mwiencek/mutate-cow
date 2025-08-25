@@ -187,26 +187,8 @@ export class CowContext {
     }
   }
 
-  _getPropDescriptor(target, prop) {
-    const descriptor = Reflect.getOwnPropertyDescriptor(target, prop);
-    if (descriptor) {
-      if (descriptor.get) {
-        throw new Error('Getters are unsupported.');
-      }
-      if (descriptor.set) {
-        throw new Error('Setters are unsupported.');
-      }
-      return descriptor;
-    }
-  }
-
   _getPropValue(prop) {
-    const target = this._read();
-    const descriptor = this._getPropDescriptor(target, prop);
-    if (descriptor) {
-      return descriptor.value;
-    }
-    return Reflect.get(target, prop);
+    return Reflect.get(this._read(), prop);
   }
 
   _getSource() {
@@ -303,8 +285,10 @@ export class CowContext {
   }
 
   _setIfChanged(prop, newValue) {
-    const descriptor = this._getPropDescriptor(this._read(), prop);
-    if (descriptor === undefined || !Object.is(descriptor.value, newValue)) {
+    if (
+      !Object.hasOwn(this._read(), prop) ||
+      !Object.is(this._getPropValue(prop), newValue)
+    ) {
       this._set(prop, newValue);
     }
   }
