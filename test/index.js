@@ -364,6 +364,9 @@ test('set', (t) => {
     const ctx = mutate(alice);
     ctx.revoke();
     assert.throws(() => {
+      ctx.set('birth_date', alice.birth_date);
+    }, ERROR_REVOKED);
+    assert.throws(() => {
       ctx.set(alice);
     }, ERROR_REVOKED);
   });

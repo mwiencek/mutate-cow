@@ -176,7 +176,7 @@ export class CowContext {
   }
 
   _getPropValue(prop) {
-    const target = this.read();
+    const target = this._read();
     const descriptor = this._getPropDescriptor(target, prop);
     if (descriptor) {
       return descriptor.value;
@@ -204,9 +204,13 @@ export class CowContext {
     }
   }
 
+  _read() {
+    return this._status === STATUS_MUTABLE ? this._result : this._getSource();
+  }
+
   read() {
     this._throwIfRevoked();
-    return this._status === STATUS_MUTABLE ? this._result : this._getSource();
+    return this._read();
   }
 
   write() {
@@ -235,6 +239,7 @@ export class CowContext {
   }
 
   get(...props) {
+    this._throwIfRevoked();
     let ctx = this;
     for (const prop of props) {
       ctx = ctx._get(prop);
@@ -273,7 +278,7 @@ export class CowContext {
   }
 
   _setIfChanged(prop, newValue) {
-    const descriptor = this._getPropDescriptor(this.read(), prop);
+    const descriptor = this._getPropDescriptor(this._read(), prop);
     if (descriptor === undefined || !Object.is(descriptor.value, newValue)) {
       this._set(prop, newValue);
     }
@@ -297,15 +302,14 @@ export class CowContext {
   }
 
   set(...args) {
-    this._throwIfRevoked();
     const newValue = args.pop();
     const hasProps = args.length > 0;
-    const lastProp = hasProps ? args.pop() : undefined;
-    const ctx = hasProps ? this.get(...args) : this;
     if (hasProps) {
-      ctx._setIfChanged(lastProp, newValue);
+      const lastProp = args.pop();
+      this.get(...args)._setIfChanged(lastProp, newValue);
     } else {
-      ctx._replace(newValue);
+      this._throwIfRevoked();
+      this._replace(newValue);
     }
     return this;
   }
@@ -320,7 +324,7 @@ export class CowContext {
     this._throwIfRevoked();
     const source = this._getSource();
     // N.B. This may be (dangerously) equal to `source`.
-    const mutableValue = this.read();
+    const mutableValue = this._read();
     const parent = this._parent;
     if (parent) {
       parent._set(this._prop, mutableValue);
@@ -378,7 +382,7 @@ export class CowContext {
         child.final();
       }
     }
-    const result = this.read();
+    const result = this._read();
     const callbacks = this._callbacks;
     this.revoke();
     for (let i = 0; i < callbacks.length; i++) {
