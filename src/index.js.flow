@@ -112,4 +112,5 @@ declare export class CowContext<
 
 declare export default function mutate<T>(
   source: T,
+  strict?: boolean,
 ): CowRootContext<T>;

@@ -17,18 +17,11 @@ const newAnimals = mutate(animals)
 
 This module allows you to update an immutable object as if it were mutable. It has copy-on-write semantics, so properties are only changed if you write to them. (In fact, if you perform no writes, the same object is returned back.) This makes it useful in conjuction with libraries like React, where state may be compared by reference.
 
-`mutate-cow` provides useful features that other packages don't:
-
- * All property descriptors from the immutable object are preserved in the copy.
- * All extensibility information from the immutable object is preserved in the copy. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen.
- * Arrays, objects, and class instances are supported for mutation.
- * Flow and TypeScript definitions are provided.
-
 No cows were harmed in the making of this code.
 
 ## API
 
-### const ctx = mutate(source)
+### const ctx = mutate(source, /* strict = */ false)
 
 Returns a "context" object which can modify a copy of `source`.
 
@@ -36,6 +29,12 @@ Returns a "context" object which can modify a copy of `source`.
 const foo = deepFreeze({bar: {baz: []}});
 const ctx = mutate(foo);
 ````
+
+By default, you can mutate primitves, arrays, and plain objects. However, if `strict` is set to true, the following features are enabled:
+
+ * All property descriptors from the immutable object are preserved in the copy.
+ * All extensibility information from the immutable object is preserved in the copy. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen.
+ * Class instances are supported for mutation.
 
 ### ctx.read()
 
@@ -132,10 +131,10 @@ Returns a boolean indicating whether `ctx` has been revoked.
 
 ### ctx.final()
 
-This is the same as `read`, except it also revokes the context and restores all property descriptors and extensibility information. This is what you call to get the final copy.
+This is the same as `read`, except it also revokes the context, and in strict mode restores all property descriptors and extensibility information. This is what you call to get the final copy.
 
 ```js
-const copy = mutate(foo).set('bar', 'baz', 'qux').final();
+const copy = mutate(foo, /* strict = */ true).set('bar', 'baz', 'qux').final();
 Object.isFrozen(copy) === true; // since `foo` was frozen, `copy` will be too
 ````
 

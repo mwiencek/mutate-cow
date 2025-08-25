@@ -70,7 +70,8 @@ function restoreDescriptors(copy, changedDescriptors) {
   }
 }
 
-function clone(source, callbacks) {
+function clone(context) {
+  const source = context._getSource();
   if (isPrimitive(source)) {
     return source;
   }
@@ -79,6 +80,23 @@ function clone(source, callbacks) {
       printConstructor(source) +
       ' objects are not supported for cloning.',
     );
+  }
+  if (context._strict) {
+    return cloneObjectStrict(source, context);
+  }
+  return cloneObjectLoose(source);
+}
+
+function cloneObjectLoose(source) {
+  if (Array.isArray(source)) {
+    return source.slice();
+  }
+  return {...source};
+}
+
+function cloneObjectStrict(source, context) {
+  if (!context._callbacks) {
+    context._callbacks = [];
   }
   const proto = Object.getPrototypeOf(source);
   let changedDescriptors = [];
@@ -107,23 +125,23 @@ function clone(source, callbacks) {
     Reflect.defineProperty(copy, key, descriptor);
   }
   if (changedDescriptors.length) {
-    callbacks.push({
+    context._callbacks.push({
       func: restoreDescriptors,
       args: [copy, changedDescriptors],
     });
   }
   if (Object.isFrozen(source)) {
-    callbacks.push({
+    context._callbacks.push({
       func: Object.freeze,
       args: [copy],
     });
   } else if (Object.isSealed(source)) {
-    callbacks.push({
+    context._callbacks.push({
       func: Object.seal,
       args: [copy],
     });
   } else if (!Object.isExtensible(source)) {
-    callbacks.push({
+    context._callbacks.push({
       func: Object.preventExtensions,
       args: [copy],
     });
@@ -132,14 +150,15 @@ function clone(source, callbacks) {
 }
 
 export class CowContext {
-  constructor(source, prop, parent) {
+  constructor(source, prop, parent, strict = false) {
     this._source = source;
     this._prop = prop;
     this._parent = parent;
-    this._callbacks = [];
+    this._callbacks = null;
     this._result = null;
     this._status = STATUS_NONE;
     this._children = null;
+    this._strict = strict;
   }
 
   _copyForWrite() {
@@ -159,7 +178,7 @@ export class CowContext {
     for (let i = stack.length - 1; i >= 0; i--) {
       const context = stack[i];
       if (!context._result) {
-        context._result = clone(context._getSource(), context._callbacks);
+        context._result = clone(context);
       }
       if (context._parent) {
         context._parent._result[context._prop] = context._result;
@@ -239,7 +258,7 @@ export class CowContext {
       return child;
     }
 
-    child = new CowContext(value, prop, this);
+    child = new CowContext(value, prop, this, this._strict);
     children.set(prop, child);
     return child;
   }
@@ -260,7 +279,7 @@ export class CowContext {
     } else {
       this._source = value;
       this._status = STATUS_NONE;
-      this._callbacks.length = 0;
+      this._callbacks = null;
       this._result = null;
       // Child source values must be invalidated, because they can
       // reference a previous copy we made.
@@ -292,7 +311,7 @@ export class CowContext {
 
   _setStale() {
     this._source = null;
-    this._callbacks.length = 0;
+    this._callbacks = null;
     this._result = null;
     this._status = STATUS_STALE;
     this._setAllChildrenAsStale();
@@ -338,7 +357,7 @@ export class CowContext {
     this._source = source;
     this._result = mutableValue;
     this._status = STATUS_MUTABLE;
-    this._callbacks.length = 0;
+    this._callbacks = null;
     this._setAllChildrenAsStale();
   }
 
@@ -391,9 +410,11 @@ export class CowContext {
     const result = this._read();
     const callbacks = this._callbacks;
     this.revoke();
-    for (let i = 0; i < callbacks.length; i++) {
-      const {func, args} = callbacks[i];
-      func(...args);
+    if (callbacks) {
+      for (let i = 0; i < callbacks.length; i++) {
+        const {func, args} = callbacks[i];
+        func(...args);
+      }
     }
     return result;
   }
@@ -403,6 +424,6 @@ export class CowContext {
   }
 }
 
-export default function mutate(source) {
-  return new CowContext(source, null, null);
+export default function mutate(source, strict = false) {
+  return new CowContext(source, null, null, strict);
 }

@@ -454,7 +454,7 @@ test('set', (t) => {
     }, /Set objects are not supported/);
   });
 
-  t.test('works on class instances', (t) => {
+  t.test('works on class instances (strict mode)', (t) => {
     class NiceBase {}
     class NiceClass extends NiceBase {
       /*::
@@ -466,7 +466,7 @@ test('set', (t) => {
       }
     }
     const orig = new NiceClass();
-    const copy = mutate(orig)
+    const copy = mutate(orig, /* strict = */ true)
       .set('value', 'naughty')
       .final();
     assert.ok(copy instanceof NiceClass);
@@ -565,7 +565,7 @@ test('set', (t) => {
     assert.deepEqual(rootCtx.final(), {[SYMBOL_KEY]: 2000, otherProp: 2001});
   });
 
-  t.test('works on array subclasses', (t) => {
+  t.test('works on array subclasses (strict mode)', (t) => {
     class SubArray extends Array/*:: <number> */ {
       /*:: +prop: string; */
       constructor(prop/*: string */) {
@@ -576,7 +576,7 @@ test('set', (t) => {
     const array = new SubArray('value');
     array.push(1, 2, 3);
 
-    const newArray = mutate(array).update(ctx => {
+    const newArray = mutate(array, /* strict = */ true).update(ctx => {
       ctx.write().push(4, 5, 6);
     }).final();
 
@@ -766,26 +766,27 @@ test('final', (t) => {
     const fooCtx = rootCtx.get('foo');
     const fooCopy = fooCtx.set('bar', 'a').final();
 
-    assert.ok(Object.isFrozen(fooCopy));
     assert.equal(fooCopy.bar, 'a');
 
     const rootCopy = rootCtx
       .set('foo', 'bar', 'b')
       .final();
 
-    assert.ok(Object.isFrozen(rootCopy));
     assert.equal(rootCopy.foo.bar, 'b');
   });
 
-  t.test('preserves frozenness of objects', (t) => {
-    const copy = mutate(alice).final();
+  t.test('preserves frozenness of objects (strict mode)', (t) => {
+    const copy = mutate(alice, /* strict = */ true)
+      .set('birth_date', 'year', 2000)
+      .set('death_date', 'year', 3000)
+      .final();
     assert.ok(Object.isFrozen(copy));
     assert.ok(Object.isFrozen(copy.birth_date));
     assert.ok(Object.isFrozen(copy.death_date));
   });
 
-  t.test('preserves frozenness of arrays', (t) => {
-    const copy = mutate(people)
+  t.test('preserves frozenness of arrays (strict mode)', (t) => {
+    const copy = mutate(people, /* strict = */ true)
       .set(0, 'birth_date', 'year', 1988)
       .update((ctx) => {
         ctx.write().push(alice);
@@ -799,20 +800,20 @@ test('final', (t) => {
     assert.ok(Object.isFrozen(copy[0].death_date));
   });
 
-  t.test('preserves sealedness of objects', (t) => {
+  t.test('preserves sealedness of objects (strict mode)', (t) => {
     const orig/*: {+name: string, +address?: string} */ =
       Object.seal({name: ''});
-    const copy = mutate(orig)
+    const copy = mutate(orig, /* strict = */ true)
       .set('address', 'abc')
       .final();
     assert.ok(Object.isSealed(copy));
     assert.ok(!Object.isFrozen(copy));
   });
 
-  t.test('preserves extensibility of objects', (t) => {
+  t.test('preserves extensibility of objects (strict mode)', (t) => {
     const orig/*: {+name: string, +address?: string} */ =
       Object.preventExtensions({name: ''});
-    const copy = mutate(orig)
+    const copy = mutate(orig, /* strict = */ true)
       .set('address', 'abc')
       .final();
     assert.ok(!Object.isExtensible(copy));
@@ -820,7 +821,7 @@ test('final', (t) => {
     assert.ok(!Object.isFrozen(copy));
   });
 
-  t.test('preserves descriptors for individual properties', (t) => {
+  t.test('preserves descriptors for individual properties (strict mode)', (t) => {
     const orig = {};
 
     const origDescriptors = {
@@ -837,7 +838,7 @@ test('final', (t) => {
     // $FlowIgnore[prop-missing]
     Object.defineProperties(orig, origDescriptors);
     // $FlowIgnore[incompatible-call]
-    const copy = mutate(orig).set('a', '1').final();
+    const copy = mutate(orig, /* strict = */ true).set('a', '1').final();
     const copyDescriptors = Object.getOwnPropertyDescriptors(copy);
     assert.deepEqual(copyDescriptors.a, {...origDescriptors.a, value: '1'});
     assert.deepEqual(copyDescriptors.b, origDescriptors.b);
@@ -849,12 +850,12 @@ test('final', (t) => {
     assert.deepEqual(copyDescriptors.h, origDescriptors.h);
   });
 
-  t.test('does not restore descriptors onto stale copies', (t) => {
+  t.test('does not restore descriptors onto stale copies (strict mode)', (t) => {
     const root = Object.freeze({
       foo: Object.freeze({bar: '' /*:: as string */}),
     });
 
-    const rootCtx = mutate(root);
+    const rootCtx = mutate(root, /* strict = */ true);
     rootCtx.get('foo').set('bar', 'a');
     const tmpFoo = rootCtx.get('foo').write();
 
@@ -873,7 +874,7 @@ test('final', (t) => {
     assert.equal(tmpFoo.bar, 'a');
   });
 
-  t.test('preserves null prototypes', (t) => {
+  t.test('preserves null prototypes (strict mode)', (t) => {
     const orig/*: {
       __proto__: null,
       +value: {__proto__: null, +number: number},
@@ -893,7 +894,7 @@ test('final', (t) => {
       },
     });
 
-    const copy = mutate(orig)
+    const copy = mutate(orig, /* strict = */ true)
       .get('value')
       .set('number', 2)
       .parent()
