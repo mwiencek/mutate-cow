@@ -6,9 +6,9 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
-// $FlowIssue[cannot-resolve-module]
+// $FlowExpectedError[cannot-resolve-module]
 import assert from 'node:assert/strict';
-// $FlowIssue[cannot-resolve-module]
+// $FlowExpectedError[cannot-resolve-module]
 import test from 'node:test';
 
 import mutate from '../src/index.js';
@@ -21,7 +21,7 @@ const ERROR_REVOKED =
 const ERROR_CLONE =
   /^Error: Only plain objects, arrays, and class instances can be cloned\./;
 
-// $FlowIgnore[incompatible-cast]
+// $FlowFixMe[incompatible-type]
 const SYMBOL_KEY = Symbol()/*:: as 'symbol' */;
 
 /*::
@@ -126,7 +126,7 @@ test('write', (t) => {
   t.test('can be called on child primitives', (t) => {
     const ctx = mutate(alice);
     ctx.get('birth_date', 'year').write();
-    // $FlowIgnore[cannot-write]
+    // $FlowExpectedError[cannot-write]
     ctx.read().birth_date.year = 1988;
     const copy = ctx.final();
     assert.equal(copy.birth_date.year, 1988);
@@ -353,7 +353,7 @@ test('set', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('func').set('error', null);
     }, /Function objects are not supported/);
   });
@@ -361,7 +361,7 @@ test('set', (t) => {
   t.test('throws if called on a number object', (t) => {
     const ctx = mutate(unsupportedProperties);
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('numberObject').set('error', null);
     }, /Number objects are not supported/);
   });
@@ -377,7 +377,7 @@ test('set', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('stringObject').set('error', null);
     }, /String objects are not supported/);
   });
@@ -393,7 +393,7 @@ test('set', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('dateObject').set('error', null);
     }, /Date objects are not supported/);
   });
@@ -402,7 +402,7 @@ test('set', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('typedArrayObject').set('error', null);
     }, /Int8Array objects are not supported/);
   });
@@ -411,7 +411,7 @@ test('set', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('regExpObject').set('error', null);
     }, /RegExp objects are not supported/);
   });
@@ -420,7 +420,7 @@ test('set', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('mapObject').set('error', null);
     }, /Map objects are not supported/);
   });
@@ -429,7 +429,7 @@ test('set', (t) => {
     const ctx = mutate(unsupportedProperties);
 
     assert.throws(() => {
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       ctx.get('setObject').set('error', null);
     }, /Set objects are not supported/);
   });
@@ -457,7 +457,7 @@ test('set', (t) => {
 
   t.test('can set the length on arrays', (t) => {
     assert.deepEqual(
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       mutate([1, 2, 3]).set('length', 1).final(),
       [1],
     );
@@ -465,10 +465,9 @@ test('set', (t) => {
 
   t.test('can add custom properties to arrays', (t) => {
     const copy = mutate(people)
-      // $FlowIgnore[incompatible-call]
+      // $FlowExpectedError[incompatible-type]
       .set('customProp', 10)
       .final();
-    // $FlowIgnore[prop-missing]
     assert.equal(copy.customProp, 10);
   });
 
@@ -486,7 +485,6 @@ test('set', (t) => {
       .final();
     assert.equal((copy1.x?.x), null);
     const copy2 = mutate(orig)
-      // $FlowIgnore[incompatible-call]
       .set('x', 'x', 'x', null)
       .final();
     assert.equal((copy2.x?.x?.x), null);
@@ -529,7 +527,6 @@ test('set', (t) => {
     const frozenRef = Object.freeze({name: ''});
     const copy = mutate(source)
       .set('ref', frozenRef)
-      // $FlowIgnore[incompatible-call]
       .set('ref', 'name', 'hi')
       .final();
     assert.equal(copy.ref?.name, 'hi');
@@ -815,9 +812,9 @@ test('final', (t) => {
       h: {configurable: true, enumerable: true, writable: true, value: undefined},
     };
 
-    // $FlowIgnore[prop-missing]
+    // $FlowFixMe[incompatible-type]
     Object.defineProperties(orig, origDescriptors);
-    // $FlowIgnore[incompatible-call]
+    // $FlowFixMe[incompatible-type]
     const copy = mutate(orig, /* strict = */ true).set('a', '1').final();
     const copyDescriptors = Object.getOwnPropertyDescriptors(copy);
     assert.deepEqual(copyDescriptors.a, {...origDescriptors.a, value: '1'});
