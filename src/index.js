@@ -70,95 +70,14 @@ function restoreDescriptors(copy, changedDescriptors) {
   }
 }
 
-function clone(context) {
-  const source = context._getSource();
-  if (isPrimitive(source)) {
-    return source;
-  }
-  if (!isCloneableObject(source)) {
-    throw new Error(
-      printConstructor(source) +
-      ' objects are not supported for cloning.',
-    );
-  }
-  if (context._strict) {
-    return cloneObjectStrict(source, context);
-  }
-  return cloneObjectLoose(source);
-}
-
-function cloneObjectLoose(source) {
-  if (Array.isArray(source)) {
-    return source.slice();
-  }
-  return {...source};
-}
-
-function cloneObjectStrict(source, context) {
-  if (!context._callbacks) {
-    context._callbacks = [];
-  }
-  const proto = Object.getPrototypeOf(source);
-  let changedDescriptors = [];
-  let copy;
-  if (Array.isArray(source)) {
-    copy = Reflect.construct(Array, source, proto.constructor);
-  } else {
-    copy = Object.create(proto);
-  }
-  const ownKeys = Reflect.ownKeys(source);
-  for (let i = 0; i < ownKeys.length; i++) {
-    const key = ownKeys[i];
-    const descriptor = Object.getOwnPropertyDescriptor(source, key);
-    let origDesc;
-    if (descriptor.configurable === false) {
-      descriptor.configurable = true;
-      origDesc = {configurable: false};
-    }
-    if (descriptor.writable === false) {
-      descriptor.writable = true;
-      origDesc = {...origDesc, writable: false};
-    }
-    if (origDesc) {
-      changedDescriptors.push([key, origDesc]);
-    }
-    Reflect.defineProperty(copy, key, descriptor);
-  }
-  if (changedDescriptors.length) {
-    context._callbacks.push({
-      func: restoreDescriptors,
-      args: [copy, changedDescriptors],
-    });
-  }
-  if (Object.isFrozen(source)) {
-    context._callbacks.push({
-      func: Object.freeze,
-      args: [copy],
-    });
-  } else if (Object.isSealed(source)) {
-    context._callbacks.push({
-      func: Object.seal,
-      args: [copy],
-    });
-  } else if (!Object.isExtensible(source)) {
-    context._callbacks.push({
-      func: Object.preventExtensions,
-      args: [copy],
-    });
-  }
-  return copy;
-}
-
 export class CowContext {
-  constructor(source, prop, parent, strict = false) {
+  constructor(source, prop, parent) {
     this._source = source;
     this._prop = prop;
     this._parent = parent;
-    this._callbacks = null;
     this._result = null;
     this._status = STATUS_NONE;
     this._children = null;
-    this._strict = strict;
   }
 
   _copyForWrite() {
@@ -178,13 +97,30 @@ export class CowContext {
     for (let i = stack.length - 1; i >= 0; i--) {
       const context = stack[i];
       if (!context._result) {
-        context._result = clone(context);
+        const source = context._getSource();
+        if (isPrimitive(source)) {
+          context._result = source;
+        } else if (!isCloneableObject(source)) {
+          throw new Error(
+            printConstructor(source) +
+            ' objects are not supported for cloning.',
+          );
+        } else {
+          context._result = context._cloneSourceObject(source);
+        }
       }
       if (context._parent) {
         context._parent._result[context._prop] = context._result;
       }
       context._status = STATUS_MUTABLE;
     }
+  }
+
+  _cloneSourceObject(source) {
+    if (Array.isArray(source)) {
+      return source.slice();
+    }
+    return {...source};
   }
 
   _getPropValue(prop) {
@@ -240,7 +176,7 @@ export class CowContext {
       return child;
     }
 
-    child = new CowContext(value, prop, this, this._strict);
+    child = new this.constructor(value, prop, this);
     children.set(prop, child);
     return child;
   }
@@ -261,7 +197,6 @@ export class CowContext {
     } else {
       this._source = value;
       this._status = STATUS_NONE;
-      this._callbacks = null;
       this._result = null;
       // Child source values must be invalidated, because they can
       // reference a previous copy we made.
@@ -295,7 +230,6 @@ export class CowContext {
 
   _setStale() {
     this._source = null;
-    this._callbacks = null;
     this._result = null;
     this._status = STATUS_STALE;
     this._setAllChildrenAsStale();
@@ -341,7 +275,6 @@ export class CowContext {
     this._source = source;
     this._result = mutableValue;
     this._status = STATUS_MUTABLE;
-    this._callbacks = null;
     this._setAllChildrenAsStale();
   }
 
@@ -375,7 +308,6 @@ export class CowContext {
     this._source = null;
     this._prop = null;
     this._parent = null;
-    this._callbacks = null;
     this._result = null;
     this._status = STATUS_REVOKED;
   }
@@ -392,14 +324,7 @@ export class CowContext {
       }
     }
     const result = this._read();
-    const callbacks = this._callbacks;
     this.revoke();
-    if (callbacks) {
-      for (let i = 0; i < callbacks.length; i++) {
-        const {func, args} = callbacks[i];
-        func(...args);
-      }
-    }
     return result;
   }
 
@@ -408,6 +333,106 @@ export class CowContext {
   }
 }
 
+class CowContextStrict extends CowContext {
+  constructor(source, prop, parent) {
+    super(source, prop, parent);
+    this._callbacks = null;
+  }
+
+  _replace(value) {
+    super._replace(value);
+    if (!this._parent) {
+      this._callbacks = null;
+    }
+  }
+
+  _setStale() {
+    super._setStale();
+    this._callbacks = null;
+  }
+
+  _cloneSourceObject(source) {
+    if (!this._callbacks) {
+      this._callbacks = [];
+    }
+    const proto = Object.getPrototypeOf(source);
+    let changedDescriptors = [];
+    let copy;
+    if (Array.isArray(source)) {
+      copy = Reflect.construct(Array, source, proto.constructor);
+    } else {
+      copy = Object.create(proto);
+    }
+    const ownKeys = Reflect.ownKeys(source);
+    for (let i = 0; i < ownKeys.length; i++) {
+      const key = ownKeys[i];
+      const descriptor = Object.getOwnPropertyDescriptor(source, key);
+      let origDesc;
+      if (descriptor.configurable === false) {
+        descriptor.configurable = true;
+        origDesc = {configurable: false};
+      }
+      if (descriptor.writable === false) {
+        descriptor.writable = true;
+        origDesc = {...origDesc, writable: false};
+      }
+      if (origDesc) {
+        changedDescriptors.push([key, origDesc]);
+      }
+      Reflect.defineProperty(copy, key, descriptor);
+    }
+    if (changedDescriptors.length) {
+      this._callbacks.push({
+        func: restoreDescriptors,
+        args: [copy, changedDescriptors],
+      });
+    }
+    if (Object.isFrozen(source)) {
+      this._callbacks.push({
+        func: Object.freeze,
+        args: [copy],
+      });
+    } else if (Object.isSealed(source)) {
+      this._callbacks.push({
+        func: Object.seal,
+        args: [copy],
+      });
+    } else if (!Object.isExtensible(source)) {
+      this._callbacks.push({
+        func: Object.preventExtensions,
+        args: [copy],
+      });
+    }
+    return copy;
+  }
+
+  dangerouslySetAsMutable() {
+    super.dangerouslySetAsMutable();
+    this._callbacks = null;
+  }
+
+  revoke() {
+    super.revoke();
+    this._callbacks = null;
+  }
+
+  final() {
+    const callbacks = this._callbacks;
+    const result = super.final();
+    if (callbacks) {
+      for (let i = 0; i < callbacks.length; i++) {
+        const {func, args} = callbacks[i];
+        func(...args);
+      }
+    }
+    return result;
+  }
+}
+
 export default function mutate(source, strict = false) {
-  return new CowContext(source, null, null, strict);
+  if (strict) {
+    return new CowContextStrict(source, null, null);
+  } else {
+    return new CowContext(source, null, null);
+  }
 }
