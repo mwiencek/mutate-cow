@@ -211,9 +211,10 @@ export class CowContext {
   }
 
   _setIfChanged(prop, newValue) {
+    const object = this._read();
     if (
-      !Object.hasOwn(this._read(), prop) ||
-      !Object.is(this._getPropValue(prop), newValue)
+      !Object.hasOwn(object, prop) ||
+      !Object.is(Reflect.get(object, prop), newValue)
     ) {
       this._set(prop, newValue);
     }
