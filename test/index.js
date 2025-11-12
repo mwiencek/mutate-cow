@@ -641,6 +641,13 @@ test('update', (t) => {
       .update('death_date', 'year', (ctx) => { ctx.set(2088); })
       .final();
   });
+
+  t.test('returns the same object if no changes are made', (t) => {
+    const copy = mutate(alice).update((ctx) => {
+      // no-op
+    }).final();
+    assert.equal(copy, alice);
+  });
 });
 
 test('dangerouslySetAsMutable', (t) => {
