@@ -283,24 +283,29 @@ export class CowContext {
     return root;
   }
 
-  revoke() {
+  _revoke(recursive) {
     if (this.isRevoked()) {
       return;
     }
     if (this._parent) {
       this._parent._children.delete(this._prop);
     }
-    if (this._children) {
-      for (const child of this._children.values()) {
-        child.revoke();
+    if (recursive && this._children) {
+      const childrenToRevoke = [...this._children.values()];
+      for (const child of childrenToRevoke) {
+        child._revoke(true);
       }
-      this._children = null;
     }
+    this._children = null;
     this._source = null;
     this._prop = null;
     this._parent = null;
     this._result = null;
     this._status = STATUS_REVOKED;
+  }
+
+  revoke() {
+    this._revoke(/* recursive = */ true);
   }
 
   isRevoked() {
@@ -310,12 +315,13 @@ export class CowContext {
   final() {
     this._throwIfRevoked();
     if (this._children) {
-      for (const child of this._children.values()) {
+      const childrenToFinalize = [...this._children.values()];
+      for (const child of childrenToFinalize) {
         child.final();
       }
     }
     const result = this._read();
-    this.revoke();
+    this._revoke(/* recursive = */ false);
     return result;
   }
 
