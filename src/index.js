@@ -83,39 +83,28 @@ export class CowContext {
   }
 
   _copyForWrite() {
-    const status = this._status;
-    if (
-      status === STATUS_MUTABLE ||
-      status === STATUS_REVOKED
-    ) {
+    if (this._status === STATUS_MUTABLE || this._status === STATUS_REVOKED) {
       return;
     }
-    const stack = [];
-    let parent = this;
-    while (parent && parent._status !== STATUS_MUTABLE) {
-      stack.push(parent);
-      parent = parent._parent;
-    }
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const context = stack[i];
-      if (!context._result) {
-        const source = context._getSource();
-        if (isPrimitive(source)) {
-          context._result = source;
-        } else if (!isCloneableObject(source)) {
-          throw new Error(
-            printConstructor(source) +
-            ' objects are not supported for cloning.',
-          );
-        } else {
-          context._result = context._cloneSourceObject(source);
-        }
+    if (!this._result) {
+      const source = this._getSource();
+      if (isPrimitive(source)) {
+        this._result = source;
+      } else if (!isCloneableObject(source)) {
+        throw new Error(
+          printConstructor(source) +
+          ' objects are not supported for cloning.',
+        );
+      } else {
+        this._result = this._cloneSourceObject(source);
       }
-      if (context._parent) {
-        context._parent._result[context._prop] = context._result;
-      }
-      context._status = STATUS_MUTABLE;
     }
+    const parent = this._parent;
+    if (parent) {
+      parent._copyForWrite();
+      parent._result[this._prop] = this._result;
+    }
+    this._status = STATUS_MUTABLE;
   }
 
   _cloneSourceObject(source) {
