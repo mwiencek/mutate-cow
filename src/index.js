@@ -5,6 +5,8 @@
  * in the file named "LICENSE" at the root directory of this distribution.
  */
 
+const EMPTY_OBJECT = Object.freeze({});
+
 const NATIVE_CODE_REGEXP = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
 
 const STATUS_NONE = 1;
@@ -133,7 +135,7 @@ export class CowContext {
        * `this._parent` should always be defined here, because we only
        * ever set `STATUS_STALE` onto child contexts.
        */
-      this._source = this._parent._getPropValue(this._prop);
+      this._source = this._parent._getPropValue(this._prop) ?? EMPTY_OBJECT;
       this._status = STATUS_NONE;
     }
     return this._source;

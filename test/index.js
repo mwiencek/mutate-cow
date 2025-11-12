@@ -570,6 +570,24 @@ test('set', (t) => {
       {a: undefined},
     );
   });
+
+  t.test('works when the parent context has removed our source properties', (t) => {
+    const rootCtx = mutate({a: {b: {c: 1}}, unrelated: 10});
+    const nestedCtx = rootCtx.get('a', 'b');
+
+    // $FlowExpectedError[incompatible-type]
+    rootCtx.set('a', {completely: 'different'});
+    // $FlowExpectedError[incompatible-type]
+    nestedCtx.set('d', 2);
+
+    assert.deepEqual(rootCtx.final(), {
+      a: {
+        b: {d: 2},
+        completely: 'different',
+      },
+      unrelated: 10,
+    });
+  });
 });
 
 test('update', (t) => {
