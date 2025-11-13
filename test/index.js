@@ -257,6 +257,13 @@ test('set', (t) => {
     assert.equal(mutate/*:: <symbol | 7> */(Symbol('3')).set(7).final(), 7);
   });
 
+  t.test('works directly on the root (one argument, strict mode)', (t) => {
+    const ctx = mutate(Object.freeze({foo: 1/*:: as number */}), true)
+    const newValue = {foo: 2};
+    ctx.set(newValue);
+    assert.equal(ctx.final(), newValue);
+  });
+
   t.test('works directly on a child (one argument)', (t) => {
     let copy = mutate(alice)
       .get('birth_date')
