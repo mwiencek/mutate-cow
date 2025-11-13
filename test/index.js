@@ -733,6 +733,16 @@ test('dangerouslySetAsMutable', (t) => {
       ctx.dangerouslySetAsMutable();
     }, ERROR_REVOKED);
   });
+
+  t.test('works on strict-mode contexts', (t) => {
+    const source = {foo: 1};
+    const ctx = mutate(source, true);
+    ctx.dangerouslySetAsMutable();
+    ctx.set('foo', 2);
+    const result = ctx.final();
+    assert.equal(result, source);
+    assert.equal(result.foo, 2);
+  });
 });
 
 test('parent', (t) => {
