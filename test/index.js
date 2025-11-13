@@ -588,6 +588,24 @@ test('set', (t) => {
       unrelated: 10,
     });
   });
+
+  t.test('creates paths that do not exist', (t) => {
+    const copy = mutate({})
+      // $FlowExpectedError[incompatible-type]
+      .set('a', 'b', 'c', 'value')
+      .final();
+    assert.deepEqual(copy, {a: {b: {c: 'value'}}});
+  });
+
+  t.test('overwrites primitive properties to create new paths', (t) => {
+    const copy = mutate({a: null, b: 1})
+      // $FlowExpectedError[incompatible-type]
+      .set('a', 'b', 'v1')
+      // $FlowExpectedError[incompatible-type]
+      .set('b', 'c', 'v2')
+      .final();
+    assert.deepEqual(copy, {a: {b: 'v1'}, b: {c: 'v2'}});
+  });
 });
 
 test('update', (t) => {

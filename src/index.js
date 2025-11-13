@@ -82,14 +82,14 @@ export class CowContext {
     this._children = null;
   }
 
-  _copyForWrite() {
+  _copyForWrite(forceObject) {
     if (this._status === STATUS_MUTABLE || this._status === STATUS_REVOKED) {
       return;
     }
     if (!this._result) {
       const source = this._getSource();
       if (isPrimitive(source)) {
-        this._result = source;
+        this._result = forceObject ? {} : source;
       } else if (!isCloneableObject(source)) {
         throw new Error(
           printConstructor(source) +
@@ -101,7 +101,7 @@ export class CowContext {
     }
     const parent = this._parent;
     if (parent) {
-      parent._copyForWrite();
+      parent._copyForWrite(/* forceObject = */ true);
       parent._result[this._prop] = this._result;
     }
     this._status = STATUS_MUTABLE;
@@ -115,7 +115,7 @@ export class CowContext {
   }
 
   _getPropValue(prop) {
-    return Reflect.get(this._read(), prop);
+    return Reflect.get(this._read() ?? EMPTY_OBJECT, prop);
   }
 
   _getSource() {
@@ -124,7 +124,7 @@ export class CowContext {
        * `this._parent` should always be defined here, because we only
        * ever set `STATUS_STALE` onto child contexts.
        */
-      this._source = this._parent._getPropValue(this._prop) ?? EMPTY_OBJECT;
+      this._source = this._parent._getPropValue(this._prop);
       this._status = STATUS_NONE;
     }
     return this._source;
@@ -149,7 +149,7 @@ export class CowContext {
 
   write() {
     this._throwIfRevoked();
-    this._copyForWrite();
+    this._copyForWrite(/* forceObject = */ false);
     return this._result;
   }
 
@@ -196,7 +196,7 @@ export class CowContext {
   }
 
   _set(prop, newValue) {
-    this._copyForWrite();
+    this._copyForWrite(/* forceObject = */ true);
     this._result[prop] = newValue;
 
     // Child source values must be invalidated, because they can
@@ -211,7 +211,7 @@ export class CowContext {
   }
 
   _setIfChanged(prop, newValue) {
-    const object = this._read();
+    const object = this._read() ?? EMPTY_OBJECT;
     if (
       !Object.hasOwn(object, prop) ||
       !Object.is(Reflect.get(object, prop), newValue)
