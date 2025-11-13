@@ -606,6 +606,17 @@ test('set', (t) => {
       .final();
     assert.deepEqual(copy, {a: {b: 'v1'}, b: {c: 'v2'}});
   });
+
+  t.test('works on objects whose prototype has a null constructor', (t) => {
+    const source = Object.create({
+      constructor: null,
+    });
+    const copy = mutate(source)
+      // $FlowExpectedError[incompatible-type]
+      .set('a', 'value')
+      .final();
+    assert.deepEqual(copy, {a: 'value'});
+  });
 });
 
 test('update', (t) => {

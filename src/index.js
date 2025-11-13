@@ -29,20 +29,19 @@ function isCloneableObject(object) {
   let proto = Object.getPrototypeOf(object);
   while (proto) {
     let ctor = proto.constructor;
-    if (!ctor) {
-      continue;
-    }
-    // A Generator object's constructor is an object.
-    if (typeof ctor === 'object') {
-      ctor = ctor.constructor;
-    }
-    if (
-      typeof ctor === 'function' &&
-      ctor.name !== 'Array' &&
-      ctor.name !== 'Object' &&
-      NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
-    ) {
-      return false;
+    if (ctor) {
+      // A Generator object's constructor is an object.
+      if (typeof ctor === 'object') {
+        ctor = ctor.constructor;
+      }
+      if (
+        typeof ctor === 'function' &&
+        ctor.name !== 'Array' &&
+        ctor.name !== 'Object' &&
+        NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
+      ) {
+        return false;
+      }
     }
     proto = Object.getPrototypeOf(proto);
   }
