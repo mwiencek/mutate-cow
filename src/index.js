@@ -56,7 +56,7 @@ function printConstructor(object) {
     case 'object':
       return Object.prototype.toString.call(ctor);
     default:
-      return '';
+      return '[primitive constructor]';
   }
 }
 

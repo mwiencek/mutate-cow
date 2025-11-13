@@ -148,6 +148,15 @@ test('write', (t) => {
     }, /\[object GeneratorFunction\] objects are not supported/);
   });
 
+  t.test('throws if you pass an uncloneable object with a primitive constructor', (t) => {
+    const obj = new Date();
+    // $FlowExpectedError[cannot-write]
+    obj.constructor = 'foo';
+    assert.throws(() => {
+      mutate(obj).write();
+    }, /\[primitive constructor\] objects are not supported for cloning/);
+  });
+
   t.test('throws if the context is revoked', (t) => {
     const ctx = mutate(people);
     ctx.revoke();
