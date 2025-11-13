@@ -812,6 +812,19 @@ test('revoke', (t) => {
       }, ERROR_REVOKED);
     });
   });
+
+  t.test('can revoke the root context (strict mode)', (t) => {
+    const ctx = mutate/*:: <ReadOnlyPerson> */(alice, /* strict = */ true);
+    ctx.set('birth_date', 'year', 1900);
+    ctx.revoke();
+    assert.ok(ctx.isRevoked());
+
+    t.test('attempting to finalize a revoked context throws (strict mode)', (t) => {
+      assert.throws(() => {
+        ctx.final();
+      }, ERROR_REVOKED);
+    });
+  });
 });
 
 test('final', (t) => {
