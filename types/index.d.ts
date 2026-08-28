@@ -1,24 +1,31 @@
+type KeyOf<T> =
+  T extends ReadonlyArray<unknown> ? number : keyof T;
+
+type PropOf<T, K> =
+  T extends ReadonlyArray<infer V> ? V :
+  K extends keyof T ? T[K] : never;
+
 type NestedProp<T, Path extends ReadonlyArray<PropertyKey>> =
   Path extends [infer First, ...infer Rest]
     ? (
-      First extends keyof T
-        ? NestedProp<T[First], Extract<Rest, ReadonlyArray<PropertyKey>>>
+      First extends KeyOf<T>
+        ? NestedProp<PropOf<T, First>, Extract<Rest, ReadonlyArray<PropertyKey>>>
         : never
     )
     : T;
 
-type NestedContext<T, ParentContext extends CowAnyContext | null, Path extends ReadonlyArray<PropertyKey>> =
+type NestedContext<T, ParentContext, Path extends ReadonlyArray<PropertyKey>> =
   Path extends [infer First, ...infer Rest]
     ? (
-      First extends keyof T
-        ? NestedContext<T[First], CowContext<T, ParentContext>, Extract<Rest, ReadonlyArray<PropertyKey>>>
+      First extends KeyOf<T>
+        ? NestedContext<PropOf<T, First>, CowContext<T, ParentContext>, Extract<Rest, ReadonlyArray<PropertyKey>>>
         : never
     )
     : CowContext<T, ParentContext>;
 
 type ShallowReadWrite<T> =
   T extends ReadonlyArray<infer V> ? Array<V> :
-  T extends object ? {-readonly [K in keyof T]: T[K]} : never;
+  T extends object ? {-readonly [K in keyof T]: T[K]} : T;
 
 type CowRootContext<R> = CowContext<R, null>;
 
@@ -37,8 +44,7 @@ type GetCowContextRoot<C> =
 
 declare class CowContext<
   out T,
-  // @ts-ignore
-  out ParentContext extends CowAnyContext | null = CowAnyContext | null,
+  out ParentContext = CowAnyContext | null,
 > {
   read(): T;
   write(): ShallowReadWrite<T>;

@@ -67,3 +67,14 @@ expectType<CowRootContext<number>>(mutate(3));
 expectType<CowRootContext<bigint>>(mutate(BigInt('3')));
 expectType<CowRootContext<string>>(mutate(''));
 expectType<CowRootContext<symbol>>(mutate(Symbol('3')));
+
+expectType<string>(ctx.get('obj', 'value').write());
+expectType<number>(mutate(3).write());
+expectType<null>(mutate(null).write());
+
+type ArrContext = CowContext<ReadonlyArray<RoValueContainer>, CowRootContext<RoRoot>>;
+
+expectType<Array<RoValueContainer>>(ctx.get('arr').write());
+expectType<CowContext<RoValueContainer, ArrContext>>(ctx.get('arr', 0));
+expectType<never>(ctx.get('arr', 'length'));
+expectType<never>(ctx.get('arr', 'concat'));
