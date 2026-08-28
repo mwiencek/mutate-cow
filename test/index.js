@@ -30,9 +30,9 @@ type DatePeriod = {
 };
 
 type ReadOnlyDatePeriod = {
-  +year: number,
-  +month?: number,
-  +day?: number,
+  readonly year: number,
+  readonly month?: number,
+  readonly day?: number,
 };
 
 type Person = {
@@ -42,13 +42,13 @@ type Person = {
 };
 
 type ReadOnlyPerson = {
-  +name: string,
-  +birth_date: ReadOnlyDatePeriod,
-  +death_date: ReadOnlyDatePeriod,
+  readonly name: string,
+  readonly birth_date: ReadOnlyDatePeriod,
+  readonly death_date: ReadOnlyDatePeriod,
 };
 
 type People = Array<Person>;
-type ReadOnlyPeople = $ReadOnlyArray<ReadOnlyPerson>;
+type ReadOnlyPeople = ReadonlyArray<ReadOnlyPerson>;
 */
 
 const aliceBirthDate = Object.freeze({year: 2100});
@@ -64,14 +64,14 @@ const people/*: ReadOnlyPeople */ = Object.freeze([alice, alice]);
 
 const unsupportedProperties/*: {
   _value: string,
-  +func: () => string,
-  +numberObject: Number,
-  +stringObject: String,
-  +dateObject: Date,
-  +typedArrayObject: Int8Array,
-  +regExpObject: RegExp,
-  +mapObject: Map<empty, empty>,
-  +setObject: Set<empty>,
+  readonly func: () => string,
+  readonly numberObject: Number,
+  readonly stringObject: String,
+  readonly dateObject: Date,
+  readonly typedArrayObject: Int8Array,
+  readonly regExpObject: RegExp,
+  readonly mapObject: Map<empty, empty>,
+  readonly setObject: Set<empty>,
 } */ = {
   _value: '',
   func: () => '',
@@ -521,10 +521,10 @@ test('set', (t) => {
   });
 
   t.test('works on shared references', (t) => {
-    const shared/*: {+foo: string} */ = Object.freeze({foo: ''});
+    const shared/*: {readonly foo: string} */ = Object.freeze({foo: ''});
     const object/*: {
-      +prop1: typeof shared,
-      +prop2: typeof shared,
+      readonly prop1: typeof shared,
+      readonly prop2: typeof shared,
     } */ = Object.freeze({
       prop1: shared,
       prop2: shared,
@@ -538,7 +538,7 @@ test('set', (t) => {
   });
 
   t.test('works on externally-frozen objects', (t) => {
-    const source/*: {+ref: {+name: string} | null} */ =
+    const source/*: {readonly ref: {readonly name: string} | null} */ =
       Object.freeze({ref: null});
     const frozenRef = Object.freeze({name: ''});
     const copy = mutate(source)
@@ -560,7 +560,7 @@ test('set', (t) => {
 
   t.test('works on array subclasses (strict mode)', (t) => {
     class SubArray extends Array/*:: <number> */ {
-      /*:: +prop: string; */
+      /*:: readonly prop: string; */
       constructor(prop/*: string */) {
         super();
         this.prop = prop;
@@ -580,7 +580,7 @@ test('set', (t) => {
 
   t.test('can set a non-existent property to undefined', (t) => {
     assert.deepEqual(
-      mutate/*:: <{+a?: void}> */({})
+      mutate/*:: <{readonly a?: void}> */({})
         .set('a', undefined)
         .final(),
       {a: undefined},
@@ -871,7 +871,7 @@ test('final', (t) => {
   });
 
   t.test('preserves sealedness of objects (strict mode)', (t) => {
-    const orig/*: {+name: string, +address?: string} */ =
+    const orig/*: {readonly name: string, readonly address?: string} */ =
       Object.seal({name: ''});
     const copy = mutate(orig, /* strict = */ true)
       .set('address', 'abc')
@@ -881,7 +881,7 @@ test('final', (t) => {
   });
 
   t.test('preserves extensibility of objects (strict mode)', (t) => {
-    const orig/*: {+name: string, +address?: string} */ =
+    const orig/*: {readonly name: string, readonly address?: string} */ =
       Object.preventExtensions({name: ''});
     const copy = mutate(orig, /* strict = */ true)
       .set('address', 'abc')
@@ -947,7 +947,7 @@ test('final', (t) => {
   t.test('preserves null prototypes (strict mode)', (t) => {
     const orig/*: {
       __proto__: null,
-      +value: {__proto__: null, +number: number},
+      readonly value: {__proto__: null, readonly number: number},
     } */ = Object.create(null, {
       value: {
         configurable: true,

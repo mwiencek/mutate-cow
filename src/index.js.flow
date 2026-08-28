@@ -1,106 +1,106 @@
 // @flow strict
 
-export type KeyType<+T> =
-  T extends $ReadOnlyArray<mixed> ? number :
-  T extends ({__proto__: null, ...} | interface {}) ? $Keys<T> :
+export type KeyType<out T> =
+  T extends ReadonlyArray<unknown> ? number :
+  T extends ({__proto__: null, ...} | interface {}) ? keyof T :
   empty;
-export type KeyType2<+T, +K1: KeyType<T>> = KeyType<PropType<T, K1>>;
-export type KeyType3<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>> = KeyType<PropType2<T, K1, K2>>;
-export type KeyType4<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>> = KeyType<PropType3<T, K1, K2, K3>>;
-export type KeyType5<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>> = KeyType<PropType4<T, K1, K2, K3, K4>>;
-export type KeyType6<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>> = KeyType<PropType5<T, K1, K2, K3, K4, K5>>;
-export type KeyType7<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>> = KeyType<PropType6<T, K1, K2, K3, K4, K5, K6>>;
-export type KeyType8<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>, +K7: KeyType7<T, K1, K2, K3, K4, K5, K6>> = KeyType<PropType7<T, K1, K2, K3, K4, K5, K6, K7>>;
+export type KeyType2<out T, out K1 extends KeyType<T>> = KeyType<PropType<T, K1>>;
+export type KeyType3<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>> = KeyType<PropType2<T, K1, K2>>;
+export type KeyType4<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>> = KeyType<PropType3<T, K1, K2, K3>>;
+export type KeyType5<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>> = KeyType<PropType4<T, K1, K2, K3, K4>>;
+export type KeyType6<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>> = KeyType<PropType5<T, K1, K2, K3, K4, K5>>;
+export type KeyType7<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>, out K6 extends KeyType6<T, K1, K2, K3, K4, K5>> = KeyType<PropType6<T, K1, K2, K3, K4, K5, K6>>;
+export type KeyType8<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>, out K6 extends KeyType6<T, K1, K2, K3, K4, K5>, out K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>> = KeyType<PropType7<T, K1, K2, K3, K4, K5, K6, K7>>;
 
-export type PropType<+T, +K: KeyType<T>> =
-  T extends $ReadOnlyArray<infer V> ? V :
+export type PropType<out T, out K extends KeyType<T>> =
+  T extends ReadonlyArray<infer V> ? V :
   T extends ({__proto__: null, ...} | interface {}) ? T[K] :
   empty;
-export type PropType2<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>> =
+export type PropType2<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>> =
   PropType<PropType<T, K1>, K2>;
-export type PropType3<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>> =
+export type PropType3<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>> =
   PropType<PropType2<T, K1, K2>, K3>;
-export type PropType4<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>> =
+export type PropType4<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>> =
   PropType<PropType3<T, K1, K2, K3>, K4>;
-export type PropType5<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>> =
+export type PropType5<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>> =
   PropType<PropType4<T, K1, K2, K3, K4>, K5>;
-export type PropType6<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>> =
+export type PropType6<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>, out K6 extends KeyType6<T, K1, K2, K3, K4, K5>> =
   PropType<PropType5<T, K1, K2, K3, K4, K5>, K6>;
-export type PropType7<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>, +K7: KeyType7<T, K1, K2, K3, K4, K5, K6>> =
+export type PropType7<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>, out K6 extends KeyType6<T, K1, K2, K3, K4, K5>, out K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>> =
   PropType<PropType6<T, K1, K2, K3, K4, K5, K6>, K7>;
-export type PropType8<+T, +K1: KeyType<T>, +K2: KeyType2<T, K1>, +K3: KeyType3<T, K1, K2>, +K4: KeyType4<T, K1, K2, K3>, +K5: KeyType5<T, K1, K2, K3, K4>, +K6: KeyType6<T, K1, K2, K3, K4, K5>, +K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, +K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>> =
+export type PropType8<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>, out K6 extends KeyType6<T, K1, K2, K3, K4, K5>, out K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>, out K8 extends KeyType8<T, K1, K2, K3, K4, K5, K6, K7>> =
   PropType<PropType7<T, K1, K2, K3, K4, K5, K6, K7>, K8>;
 
-export type ShallowReadWrite<+T> =
-  T extends $ReadOnlyArray<infer V> ? Array<V> :
+export type ShallowReadWrite<out T> =
+  T extends ReadonlyArray<infer V> ? Array<V> :
   T extends {__proto__: null, ...} ? {__proto__: null, ...T} :
   T extends {...} ? {...T} :
   T;
 
-export type CowRootContext<+R> = CowContext<R, null>;
+export type CowRootContext<R> = CowContext<R, null>;
 
-export type CowAnyContext = CowContext<mixed, CowAnyContext | null>;
+export type CowAnyContext = CowContext<unknown, CowAnyContext | null>;
 
-type $Get1<+T, +K1, +ThisContext> =
+type $Get1<T, K1, out ThisContext> =
   CowContext<PropType<T, K1>, ThisContext>;
-type $Get2<+T, +K1, +K2, +ThisContext> =
+type $Get2<T, K1, K2, out ThisContext> =
   CowContext<PropType2<T, K1, K2>, $Get1<T, K1, ThisContext>>;
-type $Get3<+T, +K1, +K2, +K3, +ThisContext> =
+type $Get3<T, K1, K2, K3, out ThisContext> =
   CowContext<PropType3<T, K1, K2, K3>, $Get2<T, K1, K2, ThisContext>>;
-type $Get4<+T, +K1, +K2, +K3, +K4, +ThisContext> =
+type $Get4<T, K1, K2, K3, K4, out ThisContext> =
   CowContext<PropType4<T, K1, K2, K3, K4>, $Get3<T, K1, K2, K3, ThisContext>>;
-type $Get5<+T, +K1, +K2, +K3, +K4, +K5, +ThisContext> =
+type $Get5<T, K1, K2, K3, K4, K5, out ThisContext> =
   CowContext<PropType5<T, K1, K2, K3, K4, K5>, $Get4<T, K1, K2, K3, K4, ThisContext>>;
-type $Get6<+T, +K1, +K2, +K3, +K4, +K5, +K6, +ThisContext> =
+type $Get6<T, K1, K2, K3, K4, K5, K6, out ThisContext> =
   CowContext<PropType6<T, K1, K2, K3, K4, K5, K6>, $Get5<T, K1, K2, K3, K4, K5, ThisContext>>;
-type $Get7<+T, +K1, +K2, +K3, +K4, +K5, +K6, +K7, +ThisContext> =
+type $Get7<T, K1, K2, K3, K4, K5, K6, K7, out ThisContext> =
   CowContext<PropType7<T, K1, K2, K3, K4, K5, K6, K7>, $Get6<T, K1, K2, K3, K4, K5, K6, ThisContext>>;
-type $Get8<+T, +K1, +K2, +K3, +K4, +K5, +K6, +K7, +K8, +ThisContext> =
+type $Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, out ThisContext> =
   CowContext<PropType8<T, K1, K2, K3, K4, K5, K6, K7, K8>, $Get7<T, K1, K2, K3, K4, K5, K6, K7, ThisContext>>;
 
-export type GetCowContextSource<+C> =
-  C extends CowContext<infer T, mixed>
+export type GetCowContextSource<out C> =
+  C extends CowContext<infer T, unknown>
     ? T
     : empty;
 
-export type GetCowContextRoot<+C> =
+export type GetCowContextRoot<out C> =
   C extends CowContext<infer T, infer P>
     ? (P extends null ? C : GetCowContextRoot<P>)
     : empty;
 
 declare export class CowContext<
- +T,
- +ParentContext: CowAnyContext | null = CowAnyContext | null,
+  T,
+  out ParentContext = CowAnyContext | null,
 >{
   read(): T;
   write(): ShallowReadWrite<T>;
   get(): this;
-  get<const K1: KeyType<T>>(prop1: K1): $Get1<T, K1, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2): $Get2<T, K1, K2, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3): $Get3<T, K1, K2, K3, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4): $Get4<T, K1, K2, K3, K4, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5): $Get5<T, K1, K2, K3, K4, K5, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6): $Get6<T, K1, K2, K3, K4, K5, K6, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7): $Get7<T, K1, K2, K3, K4, K5, K6, K7, this>;
-  get<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8): $Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, this>;
+  get<const K1 extends KeyType<T>>(prop1: K1): $Get1<T, K1, this>;
+  get<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>>(prop1: K1, prop2: K2): $Get2<T, K1, K2, this>;
+  get<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3): $Get3<T, K1, K2, K3, this>;
+  get<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4): $Get4<T, K1, K2, K3, K4, this>;
+  get<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5): $Get5<T, K1, K2, K3, K4, K5, this>;
+  get<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6): $Get6<T, K1, K2, K3, K4, K5, K6, this>;
+  get<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7): $Get7<T, K1, K2, K3, K4, K5, K6, K7, this>;
+  get<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8 extends KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8): $Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, this>;
   set(newValue: T): this;
-  set<const K1: KeyType<T>>(prop1: K1, newValue: PropType<T, K1>): this;
-  set<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2, newValue: PropType2<T, K1, K2>): this;
-  set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3, newValue: PropType3<T, K1, K2, K3>): this;
-  set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, newValue: PropType4<T, K1, K2, K3, K4>): this;
-  set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, newValue: PropType5<T, K1, K2, K3, K4, K5>): this;
-  set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, newValue: PropType6<T, K1, K2, K3, K4, K5, K6>): this;
-  set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, newValue: PropType7<T, K1, K2, K3, K4, K5, K6, K7>): this;
-  set<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, newValue: PropType8<T, K1, K2, K3, K4, K5, K6, K7, K8>): this;
-  update(updater: (this) => mixed): this;
-  update<const K1: KeyType<T>>(prop1: K1, updater: ($Get1<T, K1, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>>(prop1: K1, prop2: K2, updater: ($Get2<T, K1, K2, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3, updater: ($Get3<T, K1, K2, K3, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, updater: ($Get4<T, K1, K2, K3, K4, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, updater: ($Get5<T, K1, K2, K3, K4, K5, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, updater: ($Get6<T, K1, K2, K3, K4, K5, K6, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, updater: ($Get7<T, K1, K2, K3, K4, K5, K6, K7, this>) => mixed): this;
-  update<const K1: KeyType<T>, const K2: KeyType2<T, K1>, const K3: KeyType3<T, K1, K2>, const K4: KeyType4<T, K1, K2, K3>, const K5: KeyType5<T, K1, K2, K3, K4>, const K6: KeyType6<T, K1, K2, K3, K4, K5>, const K7: KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8: KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, updater: ($Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, this>) => mixed): this;
+  set<const K1 extends KeyType<T>>(prop1: K1, newValue: PropType<T, K1>): this;
+  set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>>(prop1: K1, prop2: K2, newValue: PropType2<T, K1, K2>): this;
+  set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3, newValue: PropType3<T, K1, K2, K3>): this;
+  set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, newValue: PropType4<T, K1, K2, K3, K4>): this;
+  set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, newValue: PropType5<T, K1, K2, K3, K4, K5>): this;
+  set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, newValue: PropType6<T, K1, K2, K3, K4, K5, K6>): this;
+  set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, newValue: PropType7<T, K1, K2, K3, K4, K5, K6, K7>): this;
+  set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8 extends KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, newValue: PropType8<T, K1, K2, K3, K4, K5, K6, K7, K8>): this;
+  update(updater: (this) => unknown): this;
+  update<const K1 extends KeyType<T>>(prop1: K1, updater: ($Get1<T, K1, this>) => unknown): this;
+  update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>>(prop1: K1, prop2: K2, updater: ($Get2<T, K1, K2, this>) => unknown): this;
+  update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>>(prop1: K1, prop2: K2, prop3: K3, updater: ($Get3<T, K1, K2, K3, this>) => unknown): this;
+  update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, updater: ($Get4<T, K1, K2, K3, K4, this>) => unknown): this;
+  update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, updater: ($Get5<T, K1, K2, K3, K4, K5, this>) => unknown): this;
+  update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, updater: ($Get6<T, K1, K2, K3, K4, K5, K6, this>) => unknown): this;
+  update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, updater: ($Get7<T, K1, K2, K3, K4, K5, K6, K7, this>) => unknown): this;
+  update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8 extends KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, updater: ($Get8<T, K1, K2, K3, K4, K5, K6, K7, K8, this>) => unknown): this;
   dangerouslySetAsMutable(): void;
   parent(): ParentContext;
   root(): GetCowContextRoot<this>;

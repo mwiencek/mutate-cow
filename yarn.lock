@@ -387,12 +387,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"flow-bin@npm:0.290.0":
-  version: 0.290.0
-  resolution: "flow-bin@npm:0.290.0"
+"flow-bin@npm:0.329.0":
+  version: 0.329.0
+  resolution: "flow-bin@npm:0.329.0"
   bin:
     flow: cli.js
-  checksum: 10c0/e4a85c3f6e06363dae33bbbd8745ddb8faad5e5acf1826ebf5394b25ff3d757980ce822a93ac778ceb91a9e26a4f4e9c84589b15e52b20ab877781bc16991bd8
+  checksum: 10c0/9acd00d4fc09bb236fc20abeb5aec44ee7dbe0ce14406d5f42625b45c857f109db0dcc7f2c94ac2520c6da393d10fed78e702ab6c6d299c9c0dc321c2b3cf271
   languageName: node
   linkType: hard
 
@@ -716,7 +716,7 @@ __metadata:
   resolution: "mutate-cow@workspace:."
   dependencies:
     benchmark: "npm:2.1.4"
-    flow-bin: "npm:0.290.0"
+    flow-bin: "npm:0.329.0"
     immer: "npm:10.1.1"
     mutative: "npm:1.2.0"
     tsd: "npm:0.29.0"
