@@ -479,10 +479,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"immer@npm:10.1.1":
-  version: 10.1.1
-  resolution: "immer@npm:10.1.1"
-  checksum: 10c0/b749e10d137ccae91788f41bd57e9387f32ea6d6ea8fd7eb47b23fd7766681575efc7f86ceef7fe24c3bc9d61e38ff5d2f49c2663b2b0c056e280a4510923653
+"immer@npm:11.1.18":
+  version: 11.1.18
+  resolution: "immer@npm:11.1.18"
+  checksum: 10c0/afe02fcd154134eb2b3bea5a06051ef2e220677dbbc9c0b17ea2ce1c22bfc3690ac16f916922c12ad9c074617a02148ac5d94cbf0886d76e7ebac726806679d0
   languageName: node
   linkType: hard
 
@@ -717,7 +717,7 @@ __metadata:
   dependencies:
     benchmark: "npm:2.1.4"
     flow-bin: "npm:0.329.0"
-    immer: "npm:10.1.1"
+    immer: "npm:11.1.18"
     mutative: "npm:1.2.0"
     tsd: "npm:0.33.0"
   languageName: unknown

@@ -19,7 +19,7 @@
   "devDependencies": {
     "benchmark": "2.1.4",
     "flow-bin": "0.329.0",
-    "immer": "10.1.1",
+    "immer": "11.1.18",
     "mutative": "1.2.0",
     "tsd": "0.33.0"
   },
