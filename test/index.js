@@ -10,6 +10,8 @@
 import assert from 'node:assert/strict';
 // $FlowExpectedError[cannot-resolve-module]
 import test from 'node:test';
+// $FlowExpectedError[cannot-resolve-module]
+import vm from 'node:vm';
 
 import mutate from '../src/index.js';
 
@@ -632,6 +634,221 @@ test('set', (t) => {
       .set('a', 'value')
       .final();
     assert.deepEqual(copy, {a: 'value'});
+  });
+});
+
+test('merge', (t) => {
+  t.test('sets each own enumerable key/value pair', (t) => {
+    const copy = mutate(alice)
+      .merge({name: 'Bob', birth_date: {year: 1988}})
+      .final();
+    assert.equal(copy.name, 'Bob');
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(copy.death_date, aliceDeathDate);
+  });
+
+  t.test('recurses into nested plain objects', (t) => {
+    const source/*: {
+      readonly a: {readonly b: {readonly c: number, readonly d: number}},
+    } */ = Object.freeze({
+      a: Object.freeze({b: Object.freeze({c: 1, d: 2})}),
+    });
+    const copy = mutate(source)
+      .merge({a: {b: {c: 3}}})
+      .final();
+    assert.deepEqual(copy, {a: {b: {c: 3, d: 2}}});
+  });
+
+  t.test('replaces arrays, class instances, and primitives directly', (t) => {
+    class Point {
+      /*:: readonly x: number; */
+      constructor(x/*: number */) {
+        this.x = x;
+      }
+    }
+    const newArray = [4, 5];
+    const newPoint = new Point(2);
+    const source/*: {
+      readonly array: ReadonlyArray<number>,
+      readonly point: Point,
+      readonly primitive: number,
+    } */ = Object.freeze({
+      array: Object.freeze([1, 2, 3]),
+      point: new Point(1),
+      primitive: 1,
+    });
+    const copy = mutate(source)
+      .merge({array: newArray, point: newPoint, primitive: 2})
+      .final();
+    assert.equal(copy.array, newArray);
+    assert.equal(copy.point, newPoint);
+    assert.equal(copy.primitive, 2);
+  });
+
+  t.test('returns the same object if no changes are made', (t) => {
+    const copy = mutate(alice)
+      .merge({
+        name: alice.name,
+        birth_date: {year: alice.birth_date.year},
+        death_date: alice.death_date,
+      })
+      .final();
+    assert.equal(copy, alice);
+  });
+
+  t.test('makes no changes when passed an empty object', (t) => {
+    assert.equal(mutate(alice).merge({}).final(), alice);
+  });
+
+  t.test('returns the context for chaining', (t) => {
+    const ctx = mutate(alice);
+    assert.equal(ctx.merge({name: 'Bob'}), ctx);
+  });
+
+  t.test('works on child contexts', (t) => {
+    const copy = mutate(alice)
+      .get('birth_date')
+      .merge({year: 1988, month: 10})
+      .finalRoot();
+    assert.deepEqual(copy.birth_date, {year: 1988, month: 10});
+    assert.equal(copy.death_date, aliceDeathDate);
+  });
+
+  t.test('works on symbol keys', (t) => {
+    const rootCtx = mutate({[SYMBOL_KEY]: 1999, otherProp: 2000});
+    rootCtx.merge({[SYMBOL_KEY]: 2000, otherProp: 2001});
+    assert.deepEqual(rootCtx.final(), {[SYMBOL_KEY]: 2000, otherProp: 2001});
+  });
+
+  t.test('ignores non-enumerable own properties', (t) => {
+    const object/*: {visible: number, hidden?: number} */ = {visible: 1};
+    Object.defineProperty(object, 'hidden', {
+      value: 2,
+      enumerable: false,
+    });
+    assert.deepEqual(
+      mutate/*:: <{readonly visible?: number, readonly hidden?: number}> */({})
+        .merge(object)
+        .final(),
+      {visible: 1},
+    );
+  });
+
+  t.test('creates paths that do not exist', (t) => {
+    const copy = mutate({})
+      // $FlowExpectedError[incompatible-type]
+      .merge({a: {b: {c: 'value'}}})
+      .final();
+    assert.deepEqual(copy, {a: {b: {c: 'value'}}});
+  });
+
+  t.test('overwrites primitive properties to create new paths', (t) => {
+    const copy = mutate({a: null, b: 1})
+      // $FlowExpectedError[incompatible-type]
+      .merge({a: {b: 'v1'}, b: {c: 'v2'}})
+      .final();
+    assert.deepEqual(copy, {a: {b: 'v1'}, b: {c: 'v2'}});
+  });
+
+  t.test('recurses into objects with a null prototype', (t) => {
+    const nullProtoValue = {__proto__: null, year: 1988};
+    // $FlowExpectedError[incompatible-type]
+    const copy = mutate(alice).merge({birth_date: nullProtoValue}).final();
+    assert.equal(copy.birth_date.year, 1988);
+    assert.equal(Object.getPrototypeOf(copy.birth_date), Object.prototype);
+  });
+
+  t.test('recurses into plain objects from another realm', (t) => {
+    const foreignObject = vm.runInNewContext('({year: 1988})');
+    const copy = mutate(alice).merge({birth_date: foreignObject}).final();
+    assert.deepEqual(copy.birth_date, {year: 1988});
+    assert.equal(copy.death_date, aliceDeathDate);
+  });
+
+  t.test('replaces objects with a detached prototype chain', (t) => {
+    class Detached {
+      /*:: readonly year: number; */
+      constructor() {
+        this.year = 1988;
+      }
+    }
+    Object.setPrototypeOf(Detached.prototype, null);
+
+    const fakeObjectProto = Object.create(null);
+    // $FlowExpectedError[prop-missing]
+    fakeObjectProto.constructor = function Object() {};
+
+    const values = [
+      Object.create(Object.create(null)),
+      new Detached(),
+      Object.create(fakeObjectProto),
+    ];
+    for (const value of values) {
+      // $FlowExpectedError[incompatible-type]
+      const copy = mutate(alice).merge({birth_date: value}).final();
+      // These should be assigned as-is rather than merged into `birth_date`.
+      assert.equal(copy.birth_date, value);
+    }
+  });
+
+  t.test('invalidates existing child contexts', (t) => {
+    const rootCtx = mutate({a: {b: {c: 1}}, unrelated: 10});
+    const nestedCtx = rootCtx.get('a', 'b');
+
+    // $FlowExpectedError[incompatible-call]
+    rootCtx.merge({a: {b: {c: 2}}});
+    assert.equal(nestedCtx.read().c, 2);
+
+    nestedCtx.set('c', 3);
+    assert.deepEqual(rootCtx.final(), {a: {b: {c: 3}}, unrelated: 10});
+  });
+
+  t.test('preserves descriptors and extensibility in strict mode', (t) => {
+    const source/*: {readonly birth_date: ReadOnlyDatePeriod} */ =
+      Object.freeze({birth_date: Object.freeze({year: 2100, month: 1})});
+    const copy = mutate(source, /* strict = */ true)
+      .merge({birth_date: {year: 1988}})
+      .final();
+    assert.deepEqual(copy, {birth_date: {year: 1988, month: 1}});
+    assert.equal(Object.isFrozen(copy), true);
+    assert.equal(Object.isFrozen(copy.birth_date), true);
+  });
+
+  t.test('throws if not passed a plain object', (t) => {
+    for (const value of [null, undefined, 1, 'a', [1], new Date()]) {
+      assert.throws(() => {
+        // $FlowExpectedError[incompatible-type]
+        // $FlowExpectedError[incompatible-exact]
+        mutate(alice).merge(value);
+      }, /^Error: `merge` must be called with a plain object\.$/);
+    }
+  });
+
+  t.test('throws if the target is an array', (t) => {
+    assert.throws(() => {
+      // $FlowExpectedError[incompatible-type]
+      mutate([1, 2, 3]).merge({0: 9});
+    }, /^Error: `merge` cannot be used to patch an array\.$/);
+
+    assert.throws(() => {
+      // $FlowExpectedError[incompatible-type]
+      mutate({a: [1, 2, 3]}).merge({a: {0: 9}});
+    }, /^Error: `merge` cannot be used to patch an array\.$/);
+
+    // Replacing an array wholesale is still allowed.
+    const newArray = [4, 5, 6];
+    assert.equal(
+      mutate({a: [1, 2, 3]}).merge({a: newArray}).final().a,
+      newArray,
+    );
+  });
+
+  t.test('throws if the context is revoked', (t) => {
+    const ctx = mutate(alice);
+    ctx.revoke();
+    assert.throws(() => {
+      ctx.merge({name: 'Bob'});
+    }, ERROR_REVOKED);
   });
 });
 

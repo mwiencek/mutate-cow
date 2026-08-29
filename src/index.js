@@ -22,6 +22,25 @@ function isPrimitive(value) {
   return (type !== 'function' && type !== 'object');
 }
 
+function isMergeableObject(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  if (proto === null || proto === Object.prototype) {
+    return true;
+  }
+  if (Object.getPrototypeOf(proto) !== null) {
+    return false;
+  }
+  const ctor = proto.constructor;
+  return (
+    typeof ctor === 'function' &&
+    ctor.name === 'Object' &&
+    NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
+  );
+}
+
 function isCloneableObject(object) {
   if (typeof object === 'function') {
     return false;
@@ -245,6 +264,34 @@ export class CowContext {
       this._throwIfRevoked();
       this._replace(newValue);
     }
+    return this;
+  }
+
+  _merge(object) {
+    if (Array.isArray(this._read())) {
+      throw new Error('`merge` cannot be used to patch an array.');
+    }
+    const keys = Reflect.ownKeys(object);
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      if (!Object.getOwnPropertyDescriptor(object, key).enumerable) {
+        continue;
+      }
+      const newValue = Reflect.get(object, key);
+      if (isMergeableObject(newValue)) {
+        this._get(key)._merge(newValue);
+      } else {
+        this._setIfChanged(key, newValue);
+      }
+    }
+  }
+
+  merge(object) {
+    this._throwIfRevoked();
+    if (!isMergeableObject(object)) {
+      throw new Error('`merge` must be called with a plain object.');
+    }
+    this._merge(object);
     return this;
   }
 

@@ -86,6 +86,23 @@ ctx.get('bar').set('baz', qux);
 ctx.get('bar', 'baz').set(qux);
 ```
 
+### ctx.merge(object)
+
+Recursively merges a plain `object` into the current working copy, as if `set` were called with each of its own enumerable key/value pairs. Returns `ctx`.
+
+Keys that aren't defined in `object` are preserved on the working copy. Values that aren't plain objects (including arrays, class instances, and primitives) replace the existing value.
+
+```js
+ctx.merge({bar: {qux: 1}});
+ctx.read().bar.qux === 1;
+ctx.read().bar.baz === foo.bar.baz; // other properties are preserved
+
+// these all do the same thing
+ctx.merge({bar: {qux: 1}});
+ctx.get('bar').merge({qux: 1});
+ctx.set('bar', 'qux', 1);
+```
+
 ### ctx.update(...path: [prop1, ...], updater)
 
 Calls `updater(ctx.get(...path))` and returns `ctx`.

@@ -31,6 +31,17 @@ export type PropType7<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<
 export type PropType8<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>, out K6 extends KeyType6<T, K1, K2, K3, K4, K5>, out K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>, out K8 extends KeyType8<T, K1, K2, K3, K4, K5, K6, K7>> =
   PropType<PropType7<T, K1, K2, K3, K4, K5, K6, K7>, K8>;
 
+export type MergeValue<out V> =
+  V extends ReadonlyArray<unknown> ? V :
+  V extends (...args: ReadonlyArray<empty>) => unknown ? V :
+  V extends ({__proto__: null, ...} | interface {}) ? (V | MergeObject<V>) :
+  V;
+
+export type MergeObject<out T> =
+  T extends ReadonlyArray<unknown> ? empty :
+  T extends ({__proto__: null, ...} | interface {}) ? {readonly [K in keyof T]?: MergeValue<T[K]>} :
+  empty;
+
 export type ShallowReadWrite<out T> =
   T extends ReadonlyArray<infer V> ? Array<V> :
   T extends {__proto__: null, ...} ? {__proto__: null, ...T} :
@@ -92,6 +103,7 @@ declare export class CowContext<
   set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, newValue: PropType6<T, K1, K2, K3, K4, K5, K6>): this;
   set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, newValue: PropType7<T, K1, K2, K3, K4, K5, K6, K7>): this;
   set<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>, const K3 extends KeyType3<T, K1, K2>, const K4 extends KeyType4<T, K1, K2, K3>, const K5 extends KeyType5<T, K1, K2, K3, K4>, const K6 extends KeyType6<T, K1, K2, K3, K4, K5>, const K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>, const K8 extends KeyType8<T, K1, K2, K3, K4, K5, K6, K7>>(prop1: K1, prop2: K2, prop3: K3, prop4: K4, prop5: K5, prop6: K6, prop7: K7, prop8: K8, newValue: PropType8<T, K1, K2, K3, K4, K5, K6, K7, K8>): this;
+  merge(object: MergeObject<T>): this;
   update(updater: (this) => unknown): this;
   update<const K1 extends KeyType<T>>(prop1: K1, updater: ($Get1<T, K1, this>) => unknown): this;
   update<const K1 extends KeyType<T>, const K2 extends KeyType2<T, K1>>(prop1: K1, prop2: K2, updater: ($Get2<T, K1, K2, this>) => unknown): this;

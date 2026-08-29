@@ -23,6 +23,17 @@ type NestedContext<T, ParentContext, Path extends ReadonlyArray<PropertyKey>> =
     )
     : CowContext<T, ParentContext>;
 
+type MergeValue<V> =
+  V extends ReadonlyArray<unknown> ? V :
+  V extends (...args: never[]) => unknown ? V :
+  V extends object ? V | MergeObject<V> :
+  V;
+
+type MergeObject<T> =
+  T extends ReadonlyArray<unknown> ? never :
+  T extends object ? {[K in keyof T]?: MergeValue<T[K]>} :
+  never;
+
 type ShallowReadWrite<T> =
   T extends ReadonlyArray<infer V> ? Array<V> :
   T extends object ? {-readonly [K in keyof T]: T[K]} : T;
@@ -50,6 +61,7 @@ declare class CowContext<
   write(): ShallowReadWrite<T>;
   get<Path extends ReadonlyArray<PropertyKey>>(...path: Path): NestedContext<T, ParentContext, Path>;
   set<Path extends ReadonlyArray<PropertyKey>>(...args: [...Path, NestedProp<T, Path>]): this;
+  merge(object: MergeObject<T>): this;
   update<Path extends ReadonlyArray<PropertyKey>>(...args: [...Path, (childContext: NestedContext<T, ParentContext, Path>) => unknown]): this;
   dangerouslySetAsMutable(): void;
   parent(): ParentContext;

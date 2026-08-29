@@ -54,6 +54,15 @@ expectError(ctx.set('obj', 'value', 0));
 expectError(ctx.set('obj', 'nested', 'value', 0));
 expectError(ctx.set('does', 'not', 'exist'));
 
+expectType<CowRootContext<RoRoot>>(ctx.merge({}));
+expectType<CowRootContext<RoRoot>>(ctx.merge({obj: {value: ''}}));
+expectType<CowRootContext<RoRoot>>(ctx.merge({obj: {nested: {value: ''}}}));
+expectError(ctx.merge({obj: {value: 0}}));
+expectError(ctx.merge({obj: {nested: {value: 0}}}));
+expectError(ctx.merge({doesNotExist: ''}));
+expectError(ctx.merge(''));
+expectType<ObjContext>(ctx.get('obj').merge({value: ''}));
+
 expectType<CowRootContext<RoRoot>>(ctx.update((rootCtx: CowRootContext<RoRoot>) => undefined));
 expectType<CowRootContext<RoRoot>>(ctx.update('obj', (childCtx: ObjContext) => undefined));
 expectError(ctx.update());
@@ -78,3 +87,27 @@ expectType<Array<RoValueContainer>>(ctx.get('arr').write());
 expectType<CowContext<RoValueContainer, ArrContext>>(ctx.get('arr', 0));
 expectType<never>(ctx.get('arr', 'length'));
 expectType<never>(ctx.get('arr', 'concat'));
+
+interface MergeRoot {
+  readonly arr: ReadonlyArray<string>;
+  readonly fn: (x: number) => string;
+  readonly obj: RoValueContainer;
+}
+
+declare const mergeCtx: CowRootContext<MergeRoot>;
+
+expectType<CowRootContext<MergeRoot>>(mergeCtx.merge({arr: ['a']}));
+expectError(mergeCtx.merge({arr: {0: 'a'}}));
+expectType<CowRootContext<MergeRoot>>(mergeCtx.merge({fn: (x: number) => ''}));
+expectError(mergeCtx.merge({fn: {}}));
+expectError(mergeCtx.merge({fn: 123}));
+
+expectType<CowRootContext<MergeRoot>>(mergeCtx.merge({obj: {value: 'x'}}));
+expectError(mergeCtx.merge({obj: {value: 1}}));
+
+declare const arrCtx: CowRootContext<ReadonlyArray<string>>;
+expectError(arrCtx.merge({0: 'a'}));
+expectError(arrCtx.merge(['a']));
+
+expectError(mutate(3).merge({}));
+expectError(mutate('').merge({}));
