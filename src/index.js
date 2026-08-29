@@ -22,6 +22,13 @@ function isPrimitive(value) {
   return (type !== 'function' && type !== 'object');
 }
 
+function isNativeFunction(value) {
+  return (
+    typeof value === 'function' &&
+    NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(value))
+  );
+}
+
 function isMergeableObject(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     return false;
@@ -34,11 +41,7 @@ function isMergeableObject(value) {
     return false;
   }
   const ctor = proto.constructor;
-  return (
-    typeof ctor === 'function' &&
-    ctor.name === 'Object' &&
-    NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
-  );
+  return (ctor?.name) === 'Object' && isNativeFunction(ctor);
 }
 
 function isCloneableObject(object) {
@@ -57,7 +60,7 @@ function isCloneableObject(object) {
         typeof ctor === 'function' &&
         ctor.name !== 'Array' &&
         ctor.name !== 'Object' &&
-        NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
+        isNativeFunction(ctor)
       ) {
         return false;
       }
