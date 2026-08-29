@@ -21,7 +21,7 @@
     "flow-bin": "0.329.0",
     "immer": "10.1.1",
     "mutative": "1.2.0",
-    "tsd": "0.29.0"
+    "tsd": "0.33.0"
   },
   "sideEffects": false,
   "type": "module",
