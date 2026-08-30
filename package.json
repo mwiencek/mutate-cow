@@ -10,6 +10,11 @@
   ],
   "main": "src/index.js",
   "types": "types/index.d.ts",
+  "files": [
+    "src/index.js",
+    "src/index.js.flow",
+    "types/index.d.ts"
+  ],
   "license": "MIT",
   "author": "Michael Wiencek <mwtuea@gmail.com>",
   "repository": {
