@@ -105,6 +105,27 @@ expectError(mergeCtx.merge({fn: 123}));
 expectType<CowRootContext<MergeRoot>>(mergeCtx.merge({obj: {value: 'x'}}));
 expectError(mergeCtx.merge({obj: {value: 1}}));
 
+type BuiltinRoot = {
+  readonly when: Date;
+  readonly map: ReadonlyMap<string, number>;
+  readonly set: ReadonlySet<number>;
+  readonly re: RegExp;
+  readonly err: Error;
+  readonly bytes: Uint8Array;
+};
+declare const builtinCtx: CowRootContext<BuiltinRoot>;
+expectType<CowRootContext<BuiltinRoot>>(builtinCtx.merge({when: new Date()}));
+expectType<CowRootContext<BuiltinRoot>>(builtinCtx.merge({map: new Map()}));
+expectError(builtinCtx.merge({when: {}}));
+expectError(builtinCtx.merge({map: {size: 0}}));
+expectError(builtinCtx.merge({set: {size: 0}}));
+expectError(builtinCtx.merge({re: {source: 'x'}}));
+expectError(builtinCtx.merge({err: {message: 'x'}}));
+expectError(builtinCtx.merge({bytes: {length: 0}}));
+
+declare const dateCtx: CowRootContext<Date>;
+expectError(dateCtx.merge({}));
+
 declare const arrCtx: CowRootContext<ReadonlyArray<string>>;
 expectError(arrCtx.merge({0: 'a'}));
 expectError(arrCtx.merge(['a']));

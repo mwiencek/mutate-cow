@@ -31,14 +31,27 @@ export type PropType7<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<
 export type PropType8<out T, out K1 extends KeyType<T>, out K2 extends KeyType2<T, K1>, out K3 extends KeyType3<T, K1, K2>, out K4 extends KeyType4<T, K1, K2, K3>, out K5 extends KeyType5<T, K1, K2, K3, K4>, out K6 extends KeyType6<T, K1, K2, K3, K4, K5>, out K7 extends KeyType7<T, K1, K2, K3, K4, K5, K6>, out K8 extends KeyType8<T, K1, K2, K3, K4, K5, K6, K7>> =
   PropType<PropType7<T, K1, K2, K3, K4, K5, K6, K7>, K8>;
 
+export type NonMergeableObject =
+  | ReadonlyArray<unknown>
+  | ((...args: ReadonlyArray<empty>) => unknown)
+  | Date
+  | RegExp
+  | Error
+  | Promise<unknown>
+  | ReadonlyMap<unknown, unknown>
+  | ReadonlySet<unknown>
+  | $ReadOnlyWeakMap<interface {}, unknown>
+  | $ReadOnlyWeakSet<interface {}>
+  | ArrayBuffer
+  | $ArrayBufferView;
+
 export type MergeValue<out V> =
-  V extends ReadonlyArray<unknown> ? V :
-  V extends (...args: ReadonlyArray<empty>) => unknown ? V :
+  V extends NonMergeableObject ? V :
   V extends ({__proto__: null, ...} | interface {}) ? (V | MergeObject<V>) :
   V;
 
 export type MergeObject<out T> =
-  T extends ReadonlyArray<unknown> ? empty :
+  T extends NonMergeableObject ? empty :
   T extends ({__proto__: null, ...} | interface {}) ? {readonly [K in keyof T]?: MergeValue<T[K]>} :
   empty;
 

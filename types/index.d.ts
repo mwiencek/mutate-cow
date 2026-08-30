@@ -23,14 +23,27 @@ type NestedContext<T, ParentContext, Path extends ReadonlyArray<PropertyKey>> =
     )
     : CowContext<T, ParentContext>;
 
+type NonMergeableObject =
+  | ReadonlyArray<unknown>
+  | ((...args: never[]) => unknown)
+  | Date
+  | RegExp
+  | Error
+  | Promise<unknown>
+  | ReadonlyMap<unknown, unknown>
+  | ReadonlySet<unknown>
+  | WeakMap<object, unknown>
+  | WeakSet<object>
+  | ArrayBuffer
+  | ArrayBufferView;
+
 type MergeValue<V> =
-  V extends ReadonlyArray<unknown> ? V :
-  V extends (...args: never[]) => unknown ? V :
+  V extends NonMergeableObject ? V :
   V extends object ? V | MergeObject<V> :
   V;
 
 type MergeObject<T> =
-  T extends ReadonlyArray<unknown> ? never :
+  T extends NonMergeableObject ? never :
   T extends object ? {[K in keyof T]?: MergeValue<T[K]>} :
   never;
 

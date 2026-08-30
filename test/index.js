@@ -635,6 +635,40 @@ test('set', (t) => {
       .final();
     assert.deepEqual(copy, {a: 'value'});
   });
+
+  t.test('shadows inherited properties without modifying the prototype', (t) => {
+    const proto = {inherited: 'original', nested: {b: 1, c: 3}};
+    const source = Object.create(proto);
+
+    const copy = mutate(source)
+      // $FlowExpectedError[incompatible-type]
+      .set('inherited', 'replaced')
+      .final();
+    assert.equal(Object.hasOwn(copy, 'inherited'), true);
+    assert.equal(copy.inherited, 'replaced');
+    assert.equal(proto.inherited, 'original');
+
+    const copy2 = mutate(source)
+      // $FlowExpectedError[incompatible-type]
+      .set('nested', 'b', 9)
+      .final();
+    assert.deepEqual(copy2.nested, {b: 9, c: 3});
+    assert.equal(Object.hasOwn(copy2, 'nested'), true);
+    assert.deepEqual(proto.nested, {b: 1, c: 3});
+  });
+
+  t.test('defines __proto__ as an own property', (t) => {
+    const newProto = {p: 1};
+    const copy = mutate({a: 1})
+      // $FlowExpectedError[incompatible-type]
+      .set('__proto__', newProto)
+      .final();
+    assert.equal(Object.hasOwn(copy, '__proto__'), true);
+    assert.equal(Reflect.get(copy, '__proto__'), newProto);
+    assert.equal(Object.getPrototypeOf(copy), Object.prototype);
+    // $FlowExpectedError[prop-missing]
+    assert.equal(copy.p, undefined);
+  });
 });
 
 test('merge', (t) => {
@@ -732,6 +766,91 @@ test('merge', (t) => {
         .final(),
       {visible: 1},
     );
+  });
+
+  t.test('never patches values inherited from the prototype chain', (t) => {
+    const copy = mutate({a: 1})
+      // $FlowExpectedError[incompatible-type]
+      .merge({toString: {x: 1}, constructor: {y: 2}})
+      .final();
+    assert.equal(Object.hasOwn(copy, 'toString'), true);
+    assert.equal(Object.hasOwn(copy, 'constructor'), true);
+    assert.deepEqual(Reflect.get(copy, 'toString'), {x: 1});
+    assert.deepEqual(Reflect.get(copy, 'constructor'), {y: 2});
+    assert.equal(({}).toString(), '[object Object]');
+  });
+
+  t.test('replaces inherited values instead of patching them', (t) => {
+    const proto = {inherited: 'original', nested: {b: 1, c: 3}};
+    const source = Object.create(proto);
+
+    const copy = mutate(source)
+      // $FlowExpectedError[incompatible-type]
+      .merge({inherited: 'replaced', nested: {b: 2}})
+      .final();
+    assert.equal(Object.hasOwn(copy, 'inherited'), true);
+    assert.equal(copy.inherited, 'replaced');
+
+    assert.deepEqual(copy.nested, {b: 2});
+    assert.equal(Object.hasOwn(copy, 'nested'), true);
+
+    assert.equal(proto.inherited, 'original');
+    assert.deepEqual(proto.nested, {b: 1, c: 3});
+    assert.equal(Object.hasOwn(source, 'nested'), false);
+  });
+
+  t.test('makes no changes for an empty patch under an inherited name', (t) => {
+    const source = {a: 1};
+    const copy = mutate(source)
+      // $FlowExpectedError[incompatible-type]
+      .merge({toString: {}})
+      .final();
+    assert.equal(copy, source);
+  });
+
+  t.test('discards a child context holding an inherited value', (t) => {
+    const context = mutate({a: 1});
+    // $FlowExpectedError[incompatible-type]
+    assert.equal(typeof context.get('toString').read(), 'function');
+    // $FlowExpectedError[incompatible-type]
+    const copy = context.merge({toString: {x: 1}}).final();
+    assert.deepEqual(Reflect.get(copy, 'toString'), {x: 1});
+  });
+
+  t.test('defines __proto__ as an own property', (t) => {
+    const copy = mutate({a: 1})
+      .merge(JSON.parse('{"__proto__": {"polluted": true}}'))
+      .final();
+    assert.equal(Object.hasOwn(copy, '__proto__'), true);
+    assert.deepEqual(Reflect.get(copy, '__proto__'), {polluted: true});
+    assert.equal(Object.getPrototypeOf(copy), Object.prototype);
+    // $FlowExpectedError[prop-missing]
+    assert.equal(copy.polluted, undefined);
+    assert.equal(Reflect.get({}, 'polluted'), undefined);
+
+    const copy2 = mutate({a: 1})
+      .merge(JSON.parse('{"__proto__": 1}'))
+      .final();
+    assert.equal(Object.hasOwn(copy2, '__proto__'), true);
+    assert.equal(Reflect.get(copy2, '__proto__'), 1);
+    assert.equal(Object.getPrototypeOf(copy2), Object.prototype);
+  });
+
+  t.test('overwrites an existing own __proto__ property', (t) => {
+    const copy = mutate(JSON.parse('{"__proto__": 1}'))
+      .merge(JSON.parse('{"__proto__": 2}'))
+      .final();
+    assert.equal(Object.hasOwn(copy, '__proto__'), true);
+    assert.equal(Reflect.get(copy, '__proto__'), 2);
+    assert.equal(Object.getPrototypeOf(copy), Object.prototype);
+  });
+
+  t.test('throws when patching an object that cannot be cloned', (t) => {
+    const map/*: Map<string, number> */ = new Map();
+    assert.throws(() => {
+      // $FlowExpectedError[incompatible-type]
+      mutate({map}).merge({map: {size: 0}});
+    }, /^Error: Map objects are not supported for cloning\.$/);
   });
 
   t.test('creates paths that do not exist', (t) => {

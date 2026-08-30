@@ -75,6 +75,8 @@ Sets the given `path` to `value` on the current working copy. Returns `ctx`.
 
 Passing zero property names (i.e., only a value) sets the current context's value.
 
+Only own properties are written.
+
 ```js
 const qux = ['qux'];
 // these all do the same thing
@@ -84,6 +86,9 @@ ctx.set('bar', 'baz', qux);
 ctx.get('bar').set({baz: qux});
 ctx.get('bar').set('baz', qux);
 ctx.get('bar', 'baz').set(qux);
+
+// sets the own property '__proto__', not the prototype
+ctx.set('__proto__', {});
 ```
 
 ### ctx.merge(object)
@@ -91,6 +96,8 @@ ctx.get('bar', 'baz').set(qux);
 Recursively merges a plain `object` into the current working copy, as if `set` were called with each of its own enumerable key/value pairs. Returns `ctx`.
 
 Keys that aren't defined in `object` are preserved on the working copy. Values that aren't plain objects (including arrays, class instances, and primitives) replace the existing value.
+
+Only own properties are written.
 
 ```js
 ctx.merge({bar: {qux: 1}});

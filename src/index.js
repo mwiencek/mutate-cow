@@ -93,6 +93,19 @@ function restoreDescriptors(copy, changedDescriptors) {
   }
 }
 
+function setProtoProperty(object, value) {
+  if (Object.hasOwn(object, '__proto__')) {
+    object['__proto__'] = value;
+  } else {
+    Reflect.defineProperty(object, '__proto__', {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  }
+}
+
 export class CowContext {
   constructor(source, prop, parent) {
     this._source = source;
@@ -123,7 +136,12 @@ export class CowContext {
     const parent = this._parent;
     if (parent) {
       parent._copyForWrite(/* forceObject = */ true);
-      parent._result[this._prop] = this._result;
+      const prop = this._prop;
+      if (prop === '__proto__') {
+        setProtoProperty(parent._result, this._result);
+      } else {
+        parent._result[prop] = this._result;
+      }
     }
     this._status = STATUS_MUTABLE;
   }
@@ -218,7 +236,11 @@ export class CowContext {
 
   _set(prop, newValue) {
     this._copyForWrite(/* forceObject = */ true);
-    this._result[prop] = newValue;
+    if (prop === '__proto__') {
+      setProtoProperty(this._result, newValue);
+    } else {
+      this._result[prop] = newValue;
+    }
 
     // Child source values must be invalidated, because they can
     // reference a previous copy we made.
@@ -270,6 +292,16 @@ export class CowContext {
     return this;
   }
 
+  _getForMerge(prop) {
+    const child = this._get(prop);
+    if (!Object.hasOwn(this._read() ?? EMPTY_OBJECT, prop)) {
+      child._source = null;
+      child._status = STATUS_NONE;
+      child._setAllChildrenAsStale();
+    }
+    return child;
+  }
+
   _merge(object) {
     if (Array.isArray(this._read())) {
       throw new Error('`merge` cannot be used to patch an array.');
@@ -282,7 +314,7 @@ export class CowContext {
       }
       const newValue = Reflect.get(object, key);
       if (isMergeableObject(newValue)) {
-        this._get(key)._merge(newValue);
+        this._getForMerge(key)._merge(newValue);
       } else {
         this._setIfChanged(key, newValue);
       }
