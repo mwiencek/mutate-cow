@@ -21,7 +21,7 @@ const ERROR_REVOKED =
   /^Error: This context has been revoked and can no longer be used\.$/;
 
 const ERROR_CLONE =
-  /^Error: Only plain objects, arrays, and class instances can be cloned\./;
+  /^Error: Only plain objects and arrays can be cloned\./;
 
 // $FlowFixMe[incompatible-type]
 const SYMBOL_KEY = Symbol()/*:: as 'symbol' */;
@@ -138,7 +138,7 @@ test('write', (t) => {
     class FunDate extends Date {}
     assert.throws(() => {
       mutate(new FunDate()).write();
-    }, /FunDate objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if you pass a generator', (t) => {
@@ -147,7 +147,7 @@ test('write', (t) => {
     }
     assert.throws(() => {
       mutate(makeGenerator()).write();
-    }, /\[object GeneratorFunction\] objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if you pass an uncloneable object with a primitive constructor', (t) => {
@@ -156,7 +156,7 @@ test('write', (t) => {
     obj.constructor = 'foo';
     assert.throws(() => {
       mutate(obj).write();
-    }, /\[primitive constructor\] objects are not supported for cloning/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if the context is revoked', (t) => {
@@ -257,13 +257,6 @@ test('set', (t) => {
     assert.equal(mutate/*:: <bigint | 7> */(BigInt('3')).set(7).final(), 7);
     assert.equal(mutate/*:: <'3' | 7> */('3').set(7).final(), 7);
     assert.equal(mutate/*:: <symbol | 7> */(Symbol('3')).set(7).final(), 7);
-  });
-
-  t.test('works directly on the root (one argument, strict mode)', (t) => {
-    const ctx = mutate(Object.freeze({foo: 1/*:: as number */}), true)
-    const newValue = {foo: 2};
-    ctx.set(newValue);
-    assert.equal(ctx.final(), newValue);
   });
 
   t.test('works directly on a child (one argument)', (t) => {
@@ -373,7 +366,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('func').set('error', null);
-    }, /Function objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if called on a number object', (t) => {
@@ -381,7 +374,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('numberObject').set('error', null);
-    }, /Number objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('can set number objects directly', (t) => {
@@ -397,7 +390,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('stringObject').set('error', null);
-    }, /String objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('can set string objects directly', (t) => {
@@ -413,7 +406,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('dateObject').set('error', null);
-    }, /Date objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if called on a TypedArray object', (t) => {
@@ -422,7 +415,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('typedArrayObject').set('error', null);
-    }, /Int8Array objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if called on a RegExp object', (t) => {
@@ -431,7 +424,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('regExpObject').set('error', null);
-    }, /RegExp objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if called on a Map object', (t) => {
@@ -440,7 +433,7 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('mapObject').set('error', null);
-    }, /Map objects are not supported/);
+    }, ERROR_CLONE);
   });
 
   t.test('throws if called on a Set object', (t) => {
@@ -449,28 +442,21 @@ test('set', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       ctx.get('setObject').set('error', null);
-    }, /Set objects are not supported/);
+    }, ERROR_CLONE);
   });
 
-  t.test('works on class instances (strict mode)', (t) => {
-    class NiceBase {}
-    class NiceClass extends NiceBase {
+  t.test('throws on class instances', (t) => {
+    class NiceClass {
       /*::
       value: string;
       */
       constructor() {
-        super();
         this.value = 'nice';
       }
     }
-    const orig = new NiceClass();
-    const copy = mutate(orig, /* strict = */ true)
-      .set('value', 'naughty')
-      .final();
-    assert.ok(copy instanceof NiceClass);
-    assert.ok(copy instanceof NiceBase);
-    assert.equal(copy.value, 'naughty');
-    assert.equal(orig.value, 'nice');
+    assert.throws(() => {
+      mutate(new NiceClass()).set('value', 'naughty');
+    }, ERROR_CLONE);
   });
 
   t.test('can set the length on arrays', (t) => {
@@ -560,24 +546,57 @@ test('set', (t) => {
     assert.deepEqual(rootCtx.final(), {[SYMBOL_KEY]: 2000, otherProp: 2001});
   });
 
-  t.test('works on array subclasses (strict mode)', (t) => {
-    class SubArray extends Array/*:: <number> */ {
-      /*:: readonly prop: string; */
-      constructor(prop/*: string */) {
-        super();
-        this.prop = prop;
-      }
-    }
-    const array = new SubArray('value');
+  t.test('works on arrays from another realm', (t) => {
+    const foreignArray = vm.runInNewContext('[1, 2, 3]');
+    const copy = mutate(foreignArray).set(0, 9).final();
+    assert.deepEqual([...copy], [9, 2, 3]);
+  });
+
+  t.test('throws on arrays with a detached prototype', (t) => {
+    const array = [1, 2, 3];
+    Object.setPrototypeOf(array, null);
+    assert.throws(() => {
+      mutate(array).set(0, 9);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws on non-arrays inheriting from Array.prototype', (t) => {
+    const object = Object.create(Array.prototype);
+    assert.throws(() => {
+      // $FlowExpectedError[incompatible-type]
+      mutate(object).set('bar', 2);
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws on array subclasses claiming a native constructor', (t) => {
+    class SubArray extends Array/*:: <number> */ {}
+    // $FlowFixMe[cannot-write]
+    SubArray.prototype.constructor = Array;
+    const array = new SubArray();
     array.push(1, 2, 3);
 
-    const newArray = mutate(array, /* strict = */ true).update(ctx => {
-      ctx.write().push(4, 5, 6);
-    }).final();
+    assert.throws(() => {
+      mutate(array).set(0, 9);
+    }, ERROR_CLONE);
+  });
 
-    assert.ok(newArray instanceof SubArray);
-    assert.equal(newArray.prop, 'value');
-    assert.deepEqual([...newArray], [1, 2, 3, 4, 5, 6]);
+  t.test('throws on custom prototypes claiming a native constructor', (t) => {
+    const proto = Object.create(null);
+    proto.constructor = Object;
+    assert.throws(() => {
+      // $FlowExpectedError[incompatible-type]
+      mutate(Object.create(proto)).set('a', 'value');
+    }, ERROR_CLONE);
+  });
+
+  t.test('throws on array subclasses', (t) => {
+    class SubArray extends Array/*:: <number> */ {}
+    const array = new SubArray();
+    array.push(1, 2, 3);
+
+    assert.throws(() => {
+      mutate(array).set(0, 9);
+    }, ERROR_CLONE);
   });
 
   t.test('can set a non-existent property to undefined', (t) => {
@@ -625,36 +644,26 @@ test('set', (t) => {
     assert.deepEqual(copy, {a: {b: 'v1'}, b: {c: 'v2'}});
   });
 
-  t.test('works on objects whose prototype has a null constructor', (t) => {
-    const source = Object.create({
-      constructor: null,
-    });
-    const copy = mutate(source)
+  t.test('throws on objects with a custom prototype', (t) => {
+    assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
-      .set('a', 'value')
-      .final();
-    assert.deepEqual(copy, {a: 'value'});
+      mutate(Object.create({inherited: 1})).set('a', 'value');
+    }, ERROR_CLONE);
+
+    assert.throws(() => {
+      // $FlowExpectedError[incompatible-type]
+      mutate(Object.create({constructor: null})).set('a', 'value');
+    }, ERROR_CLONE);
   });
 
   t.test('shadows inherited properties without modifying the prototype', (t) => {
-    const proto = {inherited: 'original', nested: {b: 1, c: 3}};
-    const source = Object.create(proto);
-
-    const copy = mutate(source)
+    const copy = mutate({a: 1})
       // $FlowExpectedError[incompatible-type]
-      .set('inherited', 'replaced')
+      .set('toString', 'replaced')
       .final();
-    assert.equal(Object.hasOwn(copy, 'inherited'), true);
-    assert.equal(copy.inherited, 'replaced');
-    assert.equal(proto.inherited, 'original');
-
-    const copy2 = mutate(source)
-      // $FlowExpectedError[incompatible-type]
-      .set('nested', 'b', 9)
-      .final();
-    assert.deepEqual(copy2.nested, {b: 9, c: 3});
-    assert.equal(Object.hasOwn(copy2, 'nested'), true);
-    assert.deepEqual(proto.nested, {b: 1, c: 3});
+    assert.equal(Object.hasOwn(copy, 'toString'), true);
+    assert.equal(Reflect.get(copy, 'toString'), 'replaced');
+    assert.equal(({}).toString(), '[object Object]');
   });
 
   t.test('defines __proto__ as an own property', (t) => {
@@ -780,25 +789,6 @@ test('merge', (t) => {
     assert.equal(({}).toString(), '[object Object]');
   });
 
-  t.test('replaces inherited values instead of patching them', (t) => {
-    const proto = {inherited: 'original', nested: {b: 1, c: 3}};
-    const source = Object.create(proto);
-
-    const copy = mutate(source)
-      // $FlowExpectedError[incompatible-type]
-      .merge({inherited: 'replaced', nested: {b: 2}})
-      .final();
-    assert.equal(Object.hasOwn(copy, 'inherited'), true);
-    assert.equal(copy.inherited, 'replaced');
-
-    assert.deepEqual(copy.nested, {b: 2});
-    assert.equal(Object.hasOwn(copy, 'nested'), true);
-
-    assert.equal(proto.inherited, 'original');
-    assert.deepEqual(proto.nested, {b: 1, c: 3});
-    assert.equal(Object.hasOwn(source, 'nested'), false);
-  });
-
   t.test('makes no changes for an empty patch under an inherited name', (t) => {
     const source = {a: 1};
     const copy = mutate(source)
@@ -850,7 +840,7 @@ test('merge', (t) => {
     assert.throws(() => {
       // $FlowExpectedError[incompatible-type]
       mutate({map}).merge({map: {size: 0}});
-    }, /^Error: Map objects are not supported for cloning\.$/);
+    }, ERROR_CLONE);
   });
 
   t.test('creates paths that do not exist', (t) => {
@@ -920,17 +910,6 @@ test('merge', (t) => {
 
     nestedCtx.set('c', 3);
     assert.deepEqual(rootCtx.final(), {a: {b: {c: 3}}, unrelated: 10});
-  });
-
-  t.test('preserves descriptors and extensibility in strict mode', (t) => {
-    const source/*: {readonly birth_date: ReadOnlyDatePeriod} */ =
-      Object.freeze({birth_date: Object.freeze({year: 2100, month: 1})});
-    const copy = mutate(source, /* strict = */ true)
-      .merge({birth_date: {year: 1988}})
-      .final();
-    assert.deepEqual(copy, {birth_date: {year: 1988, month: 1}});
-    assert.equal(Object.isFrozen(copy), true);
-    assert.equal(Object.isFrozen(copy.birth_date), true);
   });
 
   t.test('throws if not passed a plain object', (t) => {
@@ -1069,16 +1048,6 @@ test('dangerouslySetAsMutable', (t) => {
       ctx.dangerouslySetAsMutable();
     }, ERROR_REVOKED);
   });
-
-  t.test('works on strict-mode contexts', (t) => {
-    const source = {foo: 1};
-    const ctx = mutate(source, true);
-    ctx.dangerouslySetAsMutable();
-    ctx.set('foo', 2);
-    const result = ctx.final();
-    assert.equal(result, source);
-    assert.equal(result.foo, 2);
-  });
 });
 
 test('parent', (t) => {
@@ -1148,19 +1117,6 @@ test('revoke', (t) => {
       }, ERROR_REVOKED);
     });
   });
-
-  t.test('can revoke the root context (strict mode)', (t) => {
-    const ctx = mutate/*:: <ReadOnlyPerson> */(alice, /* strict = */ true);
-    ctx.set('birth_date', 'year', 1900);
-    ctx.revoke();
-    assert.ok(ctx.isRevoked());
-
-    t.test('attempting to finalize a revoked context throws (strict mode)', (t) => {
-      assert.throws(() => {
-        ctx.final();
-      }, ERROR_REVOKED);
-    });
-  });
 });
 
 test('final', (t) => {
@@ -1181,106 +1137,26 @@ test('final', (t) => {
     assert.equal(rootCopy.foo.bar, 'b');
   });
 
-  t.test('preserves frozenness of objects (strict mode)', (t) => {
-    const copy = mutate(alice, /* strict = */ true)
-      .set('birth_date', 'year', 2000)
-      .set('death_date', 'year', 3000)
-      .final();
-    assert.ok(Object.isFrozen(copy));
-    assert.ok(Object.isFrozen(copy.birth_date));
-    assert.ok(Object.isFrozen(copy.death_date));
-  });
-
-  t.test('preserves frozenness of arrays (strict mode)', (t) => {
-    const copy = mutate(people, /* strict = */ true)
-      .set(0, 'birth_date', 'year', 1988)
-      .update((ctx) => {
-        ctx.write().push(alice);
-      })
-      .final();
-    assert.equal(copy[0].birth_date.year, 1988);
-    assert.equal(copy[1], alice);
-    assert.ok(Object.isFrozen(copy));
-    assert.ok(Object.isFrozen(copy[0]));
-    assert.ok(Object.isFrozen(copy[0].birth_date));
-    assert.ok(Object.isFrozen(copy[0].death_date));
-  });
-
-  t.test('preserves sealedness of objects (strict mode)', (t) => {
-    const orig/*: {readonly name: string, readonly address?: string} */ =
-      Object.seal({name: ''});
-    const copy = mutate(orig, /* strict = */ true)
-      .set('address', 'abc')
-      .final();
-    assert.ok(Object.isSealed(copy));
-    assert.ok(!Object.isFrozen(copy));
-  });
-
-  t.test('preserves extensibility of objects (strict mode)', (t) => {
-    const orig/*: {readonly name: string, readonly address?: string} */ =
-      Object.preventExtensions({name: ''});
-    const copy = mutate(orig, /* strict = */ true)
-      .set('address', 'abc')
-      .final();
-    assert.ok(!Object.isExtensible(copy));
-    assert.ok(!Object.isSealed(copy));
-    assert.ok(!Object.isFrozen(copy));
-  });
-
-  t.test('preserves descriptors for individual properties (strict mode)', (t) => {
-    const orig = {};
-
-    const origDescriptors = {
-      a: {configurable: false, enumerable: false, writable: false, value: undefined},
-      b: {configurable: false, enumerable: false, writable: true, value: undefined},
-      c: {configurable: false, enumerable: true, writable: false, value: undefined},
-      d: {configurable: false, enumerable: true, writable: true, value: undefined},
-      e: {configurable: true, enumerable: false, writable: false, value: undefined},
-      f: {configurable: true, enumerable: false, writable: true, value: undefined},
-      g: {configurable: true, enumerable: true, writable: false, value: undefined},
-      h: {configurable: true, enumerable: true, writable: true, value: undefined},
-    };
-
-    // $FlowFixMe[incompatible-type]
-    Object.defineProperties(orig, origDescriptors);
-    // $FlowFixMe[incompatible-type]
-    const copy = mutate(orig, /* strict = */ true).set('a', '1').final();
-    const copyDescriptors = Object.getOwnPropertyDescriptors(copy);
-    assert.deepEqual(copyDescriptors.a, {...origDescriptors.a, value: '1'});
-    assert.deepEqual(copyDescriptors.b, origDescriptors.b);
-    assert.deepEqual(copyDescriptors.c, origDescriptors.c);
-    assert.deepEqual(copyDescriptors.d, origDescriptors.d);
-    assert.deepEqual(copyDescriptors.e, origDescriptors.e);
-    assert.deepEqual(copyDescriptors.f, origDescriptors.f);
-    assert.deepEqual(copyDescriptors.g, origDescriptors.g);
-    assert.deepEqual(copyDescriptors.h, origDescriptors.h);
-  });
-
-  t.test('does not restore descriptors onto stale copies (strict mode)', (t) => {
+  t.test('discards copies made before a child was replaced', (t) => {
     const root = Object.freeze({
       foo: Object.freeze({bar: '' /*:: as string */}),
     });
 
-    const rootCtx = mutate(root, /* strict = */ true);
+    const rootCtx = mutate(root);
     rootCtx.get('foo').set('bar', 'a');
     const tmpFoo = rootCtx.get('foo').write();
-
-    assert.ok(!Object.isFrozen(tmpFoo));
 
     rootCtx.set('foo', Object.freeze({bar: 'b'}));
     rootCtx.get('foo').set('bar', 'c');
 
     const rootCopy = rootCtx.finalRoot();
-    assert.ok(Object.isFrozen(rootCopy));
-    assert.ok(Object.isFrozen(rootCopy.foo));
     assert.equal(rootCopy.foo.bar, 'c');
 
     // `tmpFoo` is stale
-    assert.ok(!Object.isFrozen(tmpFoo));
     assert.equal(tmpFoo.bar, 'a');
   });
 
-  t.test('preserves null prototypes (strict mode)', (t) => {
+  t.test('copies objects with a null prototype onto Object.prototype', (t) => {
     const orig/*: {
       __proto__: null,
       readonly value: {__proto__: null, readonly number: number},
@@ -1300,15 +1176,16 @@ test('final', (t) => {
       },
     });
 
-    const copy = mutate(orig, /* strict = */ true)
+    const copy = mutate(orig)
       .get('value')
       .set('number', 2)
       .parent()
       .final();
 
     assert.equal(orig.value.number, 1);
+    assert.equal(Object.getPrototypeOf(orig), null);
     assert.equal(copy.value.number, 2);
-    assert.equal(Object.getPrototypeOf(copy), null);
-    assert.equal(Object.getPrototypeOf(copy.value), null);
+    assert.equal(Object.getPrototypeOf(copy), Object.prototype);
+    assert.equal(Object.getPrototypeOf(copy.value), Object.prototype);
   });
 });

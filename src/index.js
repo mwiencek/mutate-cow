@@ -9,101 +9,59 @@ const EMPTY_OBJECT = Object.freeze({});
 
 const NATIVE_CODE_REGEXP = /^function \w*\(\) \{\s*\[native code\]\s*\}$/m;
 
+const TYPE_PRIMITIVE = 1;
+const TYPE_PLAIN_OBJECT = 2;
+const TYPE_PLAIN_ARRAY = 3;
+const TYPE_UNSUPPORTED = 4;
+
 const STATUS_NONE = 1;
 const STATUS_MUTABLE = 2;
 const STATUS_REVOKED = 3;
 const STATUS_STALE = 4;
 
-function isPrimitive(value) {
+function getValueType(value) {
   if (value === null) {
-    return true;
+    return TYPE_PRIMITIVE;
   }
   const type = typeof value;
-  return (type !== 'function' && type !== 'object');
+  if (type !== 'object') {
+    return type === 'function' ? TYPE_UNSUPPORTED : TYPE_PRIMITIVE;
+  }
+  const proto = Object.getPrototypeOf(value);
+  if (proto === Object.prototype) {
+    return TYPE_PLAIN_OBJECT;
+  } else if (proto === Array.prototype) {
+    return Array.isArray(value) ? TYPE_PLAIN_ARRAY : TYPE_UNSUPPORTED;
+  } else if (Array.isArray(value)) {
+    return (proto !== null && isNativePrototype(proto, 'Array'))
+      ? TYPE_PLAIN_ARRAY
+      : TYPE_UNSUPPORTED;
+  } else if (proto === null) {
+    return TYPE_PLAIN_OBJECT;
+  }
+  return (
+    Object.getPrototypeOf(proto) === null &&
+    isNativePrototype(proto, 'Object')
+  ) ? TYPE_PLAIN_OBJECT : TYPE_UNSUPPORTED;
 }
 
-function isNativeFunction(value) {
+function isNativePrototype(proto, name) {
+  const ctor = proto.constructor;
   return (
-    typeof value === 'function' &&
-    NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(value))
+    typeof ctor === 'function' &&
+    ctor.name === name &&
+    ctor.prototype === proto &&
+    NATIVE_CODE_REGEXP.test(Function.prototype.toString.call(ctor))
   );
 }
 
-function isMergeableObject(value) {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return false;
-  }
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null || proto === Object.prototype) {
-    return true;
-  }
-  if (Object.getPrototypeOf(proto) !== null) {
-    return false;
-  }
-  const ctor = proto.constructor;
-  return (ctor?.name) === 'Object' && isNativeFunction(ctor);
-}
-
-function isCloneableObject(object) {
-  if (typeof object === 'function') {
-    return false;
-  }
-  let proto = Object.getPrototypeOf(object);
-  while (proto) {
-    let ctor = proto.constructor;
-    if (ctor) {
-      // A Generator object's constructor is an object.
-      if (typeof ctor === 'object') {
-        ctor = ctor.constructor;
-      }
-      if (
-        typeof ctor === 'function' &&
-        ctor.name !== 'Array' &&
-        ctor.name !== 'Object' &&
-        isNativeFunction(ctor)
-      ) {
-        return false;
-      }
-    }
-    proto = Object.getPrototypeOf(proto);
-  }
-  return true;
-}
-
-function printConstructor(object) {
-  const ctor = object.constructor;
-  switch (typeof ctor) {
-    case 'function':
-      return ctor.name;
-    case 'object':
-      return Object.prototype.toString.call(ctor);
-    default:
-      return '[primitive constructor]';
-  }
-}
-
-function restoreDescriptors(copy, changedDescriptors) {
-  for (let i = 0; i < changedDescriptors.length; i++) {
-    const [name, origDesc] = changedDescriptors[i];
-    const descriptor = Object.getOwnPropertyDescriptor(copy, name);
-    if (descriptor) {
-      Object.assign(descriptor, origDesc);
-      Reflect.defineProperty(copy, name, descriptor);
-    }
-  }
-}
-
 function setProtoProperty(object, value) {
-  if (Object.hasOwn(object, '__proto__')) {
-    object['__proto__'] = value;
-  } else {
-    Reflect.defineProperty(object, '__proto__', {
-      value,
-      writable: true,
-      enumerable: true,
-      configurable: true,
-    });
-  }
+  Reflect.defineProperty(object, '__proto__', {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
 }
 
 export class CowContext {
@@ -122,15 +80,18 @@ export class CowContext {
     }
     if (!this._result) {
       const source = this._getSource();
-      if (isPrimitive(source)) {
-        this._result = forceObject ? {} : source;
-      } else if (!isCloneableObject(source)) {
-        throw new Error(
-          printConstructor(source) +
-          ' objects are not supported for cloning.',
-        );
-      } else {
-        this._result = this._cloneSourceObject(source);
+      switch (getValueType(source)) {
+        case TYPE_PLAIN_OBJECT:
+          this._result = {...source};
+          break;
+        case TYPE_PLAIN_ARRAY:
+          this._result = source.slice();
+          break;
+        case TYPE_PRIMITIVE:
+          this._result = forceObject ? {} : source;
+          break;
+        default:
+          throw new Error('Only plain objects and arrays can be cloned.');
       }
     }
     const parent = this._parent;
@@ -144,13 +105,6 @@ export class CowContext {
       }
     }
     this._status = STATUS_MUTABLE;
-  }
-
-  _cloneSourceObject(source) {
-    if (Array.isArray(source)) {
-      return source.slice();
-    }
-    return {...source};
   }
 
   _getPropValue(prop) {
@@ -313,7 +267,7 @@ export class CowContext {
         continue;
       }
       const newValue = Reflect.get(object, key);
-      if (isMergeableObject(newValue)) {
+      if (getValueType(newValue) === TYPE_PLAIN_OBJECT) {
         this._getForMerge(key)._merge(newValue);
       } else {
         this._setIfChanged(key, newValue);
@@ -323,7 +277,7 @@ export class CowContext {
 
   merge(object) {
     this._throwIfRevoked();
-    if (!isMergeableObject(object)) {
+    if (getValueType(object) !== TYPE_PLAIN_OBJECT) {
       throw new Error('`merge` must be called with a plain object.');
     }
     this._merge(object);
@@ -412,106 +366,6 @@ export class CowContext {
   }
 }
 
-class CowContextStrict extends CowContext {
-  constructor(source, prop, parent) {
-    super(source, prop, parent);
-    this._callbacks = null;
-  }
-
-  _replace(value) {
-    super._replace(value);
-    if (!this._parent) {
-      this._callbacks = null;
-    }
-  }
-
-  _setStale() {
-    super._setStale();
-    this._callbacks = null;
-  }
-
-  _cloneSourceObject(source) {
-    if (!this._callbacks) {
-      this._callbacks = [];
-    }
-    const proto = Object.getPrototypeOf(source);
-    let changedDescriptors = [];
-    let copy;
-    if (Array.isArray(source)) {
-      copy = Reflect.construct(Array, source, proto.constructor);
-    } else {
-      copy = Object.create(proto);
-    }
-    const ownKeys = Reflect.ownKeys(source);
-    for (let i = 0; i < ownKeys.length; i++) {
-      const key = ownKeys[i];
-      const descriptor = Object.getOwnPropertyDescriptor(source, key);
-      let origDesc;
-      if (descriptor.configurable === false) {
-        descriptor.configurable = true;
-        origDesc = {configurable: false};
-      }
-      if (descriptor.writable === false) {
-        descriptor.writable = true;
-        origDesc = {...origDesc, writable: false};
-      }
-      if (origDesc) {
-        changedDescriptors.push([key, origDesc]);
-      }
-      Reflect.defineProperty(copy, key, descriptor);
-    }
-    if (changedDescriptors.length) {
-      this._callbacks.push({
-        func: restoreDescriptors,
-        args: [copy, changedDescriptors],
-      });
-    }
-    if (Object.isFrozen(source)) {
-      this._callbacks.push({
-        func: Object.freeze,
-        args: [copy],
-      });
-    } else if (Object.isSealed(source)) {
-      this._callbacks.push({
-        func: Object.seal,
-        args: [copy],
-      });
-    } else if (!Object.isExtensible(source)) {
-      this._callbacks.push({
-        func: Object.preventExtensions,
-        args: [copy],
-      });
-    }
-    return copy;
-  }
-
-  dangerouslySetAsMutable() {
-    super.dangerouslySetAsMutable();
-    this._callbacks = null;
-  }
-
-  revoke() {
-    super.revoke();
-    this._callbacks = null;
-  }
-
-  final() {
-    const callbacks = this._callbacks;
-    const result = super.final();
-    if (callbacks) {
-      for (let i = 0; i < callbacks.length; i++) {
-        const {func, args} = callbacks[i];
-        func(...args);
-      }
-    }
-    return result;
-  }
-}
-
-export default function mutate(source, strict = false) {
-  if (strict) {
-    return new CowContextStrict(source, null, null);
-  } else {
-    return new CowContext(source, null, null);
-  }
+export default function mutate(source) {
+  return new CowContext(source, null, null);
 }

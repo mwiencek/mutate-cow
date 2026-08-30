@@ -21,7 +21,7 @@ No cows were harmed in the making of this code.
 
 ## API
 
-### const ctx = mutate(source, /* strict = */ false)
+### const ctx = mutate(source)
 
 Returns a "context" object which can modify a copy of `source`.
 
@@ -30,11 +30,7 @@ const foo = deepFreeze({bar: {baz: []}});
 const ctx = mutate(foo);
 ````
 
-By default, you can mutate primitves, arrays, and plain objects. However, if `strict` is set to true, the following features are enabled:
-
- * All property descriptors from the immutable object are preserved in the copy.
- * All extensibility information from the immutable object is preserved in the copy. Combined with the above point, this means that sealed objects stay sealed and frozen objects stay frozen.
- * Class instances are supported for mutation.
+You can mutate primitves, arrays, and plain objects. However, note that `null` prototypes and frozenness are not preserved.
 
 ### ctx.read()
 
@@ -155,11 +151,10 @@ Returns a boolean indicating whether `ctx` has been revoked.
 
 ### ctx.final()
 
-This is the same as `read`, except it also revokes the context, and in strict mode restores all property descriptors and extensibility information. This is what you call to get the final copy.
+This is the same as `read`, except it also revokes the context. This is what you call to get the final copy.
 
 ```js
-const copy = mutate(foo, /* strict = */ true).set('bar', 'baz', 'qux').final();
-Object.isFrozen(copy) === true; // since `foo` was frozen, `copy` will be too
+const copy = mutate(foo).set('bar', 'baz', 'qux').final();
 ````
 
 ### ctx.finalRoot()

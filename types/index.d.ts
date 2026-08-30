@@ -87,7 +87,6 @@ declare class CowContext<
 
 declare function mutate<T>(
   source: T,
-  strict?: boolean,
 ): CowRootContext<T>;
 
 export {CowRootContext, CowAnyContext, CowContext};
