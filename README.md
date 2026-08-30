@@ -30,7 +30,7 @@ const foo = deepFreeze({bar: {baz: []}});
 const ctx = mutate(foo);
 ````
 
-You can mutate primitves, arrays, and plain objects. However, note that `null` prototypes and frozenness are not preserved.
+You can mutate primitives, arrays, and plain objects. However, note that `null` prototypes and frozenness are not preserved.
 
 ### ctx.read()
 
