@@ -1189,3 +1189,17 @@ test('final', (t) => {
     assert.equal(Object.getPrototypeOf(copy.value), Object.prototype);
   });
 });
+
+//Regression test for covariant `T` on `CowContext`
+
+/*::
+declare const personContext: types.CowContext<ReadOnlyPerson, null>;
+declare const personRoot: types.CowRootContext<ReadOnlyPerson>;
+
+personContext as types.CowContext<ReadOnlyPerson | null, null>;
+personRoot as types.CowRootContext<ReadOnlyPerson | null>;
+
+declare const maybePersonContext: types.CowContext<ReadOnlyPerson | null, null>;
+// $FlowExpectedError[incompatible-type]
+maybePersonContext as types.CowContext<ReadOnlyPerson, null>;
+*/
